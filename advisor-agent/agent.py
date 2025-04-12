@@ -1,67 +1,23 @@
-import datetime
-from zoneinfo import ZoneInfo
-from google.adk.agents import Agent
+from google.adk.agents import LlmAgent
+from tools import pdf_tool, search_tool, index_pdfs
+import json
 
-def get_weather(city: str) -> dict:
-    """Retrieves the current weather report for a specified city.
+# Mock corpus (replace with real PDF data later)
+pdfs = index_pdfs()
 
-    Args:
-        city (str): The name of the city for which to retrieve the weather report.
-
-    Returns:
-        dict: status and result or error msg.
-    """
-    if city.lower() == "new york":
-        return {
-            "status": "success",
-            "report": (
-                "The weather in New York is sunny with a temperature of 25 degrees"
-                " Celsius (41 degrees Fahrenheit)."
-            ),
-        }
-    else:
-        return {
-            "status": "error",
-            "error_message": f"Weather information for '{city}' is not available.",
-        }
-
-
-def get_current_time(city: str) -> dict:
-    """Returns the current time in a specified city.
-
-    Args:
-        city (str): The name of the city for which to retrieve the current time.
-
-    Returns:
-        dict: status and result or error msg.
-    """
-
-    if city.lower() == "new york":
-        tz_identifier = "America/New_York"
-    else:
-        return {
-            "status": "error",
-            "error_message": (
-                f"Sorry, I don't have timezone information for {city}."
-            ),
-        }
-
-    tz = ZoneInfo(tz_identifier)
-    now = datetime.datetime.now(tz)
-    report = (
-        f'The current time in {city} is {now.strftime("%Y-%m-%d %H:%M:%S %Z%z")}'
-    )
-    return {"status": "success", "report": report}
-
-
-root_agent = Agent(
-    name="weather_time_agent",
-    model="gemini-2.0-flash-exp",
-    description=(
-        "Agent to answer questions about the time and weather in a city."
-    ),
-    instruction=(
-        "I can answer your questions about the time and weather in a city."
-    ),
-    tools=[get_weather, get_current_time],
+root_agent = LlmAgent(
+    name="cs_advisor",
+    model="gemini-2.0-flash-exp",  # Fast model for prototyping
+    description="An AI advisor for UMD CS major requirements.",
+    instruction="""
+You are an expert academic advisor for the University of Maryland's Computer Science major. 
+Use the provided PDF data to answer questions about course requirements, prerequisites, electives, and degree planning.
+- Be precise and concise.
+- If the data is unclear or missing, say so and suggest the student check with UMD's advising office.
+- Do not invent course details.
+Tools:
+- process_pdf: Use to extract text from specific PDFs if needed.
+- search_pdfs: Use to search for relevant snippets in the PDF list.
+""",
+    tools=[pdf_tool, search_tool]
 )
