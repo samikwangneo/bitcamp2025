@@ -1,0 +1,50 @@
+[
+  {
+    "query": "Inspire me about the Americas",
+    "expected_tool_use": [
+      {
+        "tool_name": "transfer_to_agent",
+        "tool_input": {
+          "agent_name":"inspiration_agent"
+        }
+      },
+      {
+        "tool_name": "place_agent",
+        "tool_input": {
+          "request":"Americas"
+        }
+      }
+    ],
+    "reference": "Okay, I have a few ideas for you! How about:\n\n*   **Machu Picchu, Peru:** An ancient Inca citadel set high in the Andes Mountains.\n*   **Banff National Park, Canada:** Home to majestic mountains and turquoise lakes.\n*   **New York City, USA:** An iconic metropolis with world-class museums and diverse cuisine.\n\nAre any of these destinations of particular interest to you? I can provide more details on activities and attractions.\n"
+  },
+  {
+    "query": "Tell me more what I can do in Peru",
+    "expected_tool_use": [
+      {
+        "tool_name": "poi_agent",
+        "tool_input": {
+          "request":"Peru"
+        }
+      },
+      {
+        "tool_name": "map_tool", 
+        "tool_input": {
+          "key": "poi"
+        }
+      }      
+    ],
+    "reference": "Peru is a land of incredible history and natural beauty! You could:\n\n*   **Explore Machu Picchu:** Hike through the iconic Inca citadel and marvel at its architectural genius.\n*   **Visit Rainbow Mountain:** Trek through vibrant, colorful landscapes.\n*   **Discover Lake Titicaca:** Explore the highest navigable lake in South America and visit the unique Uros floating islands.\n*   **Explore Sacsayhuamán:** Roam through this Inca fortress with massive stone walls.\n*   **Fly over the Nazca Lines:** Take a flight to witness the mysterious geoglyphs etched into the desert sands.\n\nGiven your vegan food preference, you'll be happy to know that many restaurants in Peru offer vegan options, especially in larger cities like Cusco and Lima.\n\nWhich of these activities sounds most appealing? Or is there anything else about Peru you're curious about?\n"
+  },
+  {
+    "query": "Start planning",
+    "expected_tool_use": [
+      {
+        "tool_name": "transfer_to_agent",
+        "tool_input": {
+          "agent_name":"planning_agent"
+        }
+      } 
+    ],
+    "reference": "Okay, let's start planning your trip to Peru! Based on your interest in Peru, I'll plan a trip centered around Machu Picchu, Rainbow Mountain, Lake Titicaca, Sacsayhuamán, and the Nazca Lines.\n\nFirst, I need a little more information to create the perfect itinerary.\n\n*   **Origin:** Where will you be departing from?\n*   **Start Date:** When would you like to begin your trip?\n*   **End Date:** How many days would you like your trip to last?\n"
+  }      
+]

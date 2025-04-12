@@ -1,0 +1,58 @@
+[
+  {
+    "query": "transfer to pre_trip",
+    "expected_tool_use": [
+      {
+        "tool_name": "transfer_to_agent",
+        "tool_input": {
+          "agent_name":"pre_trip_agent"
+        }
+      }
+    ],
+    "expected_intermediate_agent_responses" : [],
+    "reference": "Okay, I am now the pre-trip agent. I see you have a trip planned from San Diego to Seattle from June 15, 2025 to June 17, 2025. I also see you are a US Citizen."
+  },
+  {
+    "query": "update",
+    "expected_tool_use": [
+      {
+        "tool_name": "google_search_grounding",
+        "tool_input": {
+          "request":"visa_requirements for a US Citizen traveling from San Diego to Seattle"
+        }        
+      },
+      {
+        "tool_name": "google_search_grounding",
+        "tool_input": {
+          "request":"medical_requirements for travel from San Diego to Seattle"
+        }        
+      },
+      {
+        "tool_name": "google_search_grounding",
+        "tool_input": {
+          "request":"storm_monitor for Seattle in June"
+        }        
+      },
+      {
+        "tool_name": "google_search_grounding",
+        "tool_input": {
+          "request":"travel_advisory for Seattle"
+        }        
+      },
+      {
+        "tool_name": "what_to_pack_agent",
+        "tool_input": {
+          "request":"Seattle in June"
+        }        
+      }
+    ],
+    "expected_intermediate_agent_responses" : [
+      "- **Visa:** As a US citizen traveling from San Diego to Seattle, you don't need a visa. However, starting May 7, 2025, you'll need a REAL ID-compliant license or another acceptable form of identification (like a passport) for domestic flights.",
+      "- **Medical:** Ensure you have a REAL ID-compliant driver's license or another acceptable form of identification like a U.S. passport. Check with your airline for any specific requirements.",
+      "- **Storm Update:** I am unable to monitor storms specifically.",
+      "- **Travel Advisory:** Seattle is generally safe, but be aware of petty crime, especially in tourist areas, and take normal security precautions.",
+      "- **What to Pack:** I suggest bringing a light jacket, umbrella, comfortable walking shoes, and layers of clothing."
+    ],
+    "reference": "Here are the important information for your trip:\n\n- **Visa:** As a US citizen traveling domestically from San Diego to Seattle, you do not need a visa.\n- **Medical:** Ensure your routine vaccinations are up to date, including the flu shot, and consult your doctor about any personal medical concerns or necessary prescription refills.\n- **Storm Update:** In Seattle during June, expect moderately warm weather with average high temperatures increasing from 69°F to 74°F, and be prepared for rainfall on approximately 8 days of the month.\n- **Travel Advisory:** For up-to-date travel alerts and advisories in Seattle, consult the SDOT Blog for information on construction, events, and traffic, and check the Washington State Tourism website for alerts related to transportation, wildfires, and natural impacts.\n- **What to Pack:** I suggest bringing a light jacket, umbrella, comfortable walking shoes, and layers of clothing.\n"
+  }
+]
