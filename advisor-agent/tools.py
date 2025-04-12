@@ -15,7 +15,7 @@ def process_pdf(pdf_path: str) -> dict:
                 "filename": os.path.basename(pdf_path),
                 "text": text,
                 "status": "success",
-                "subtopic": os.path.basename(os.path.dirname(pdf_path))  # e.g., '4XX', 'Honors', 'STIC'
+                "subtopic": os.path.basename(os.path.dirname(pdf_path))  # Keep for organizational info only
             }
     except Exception as e:
         return {"filename": pdf_path, "status": "error", "error": str(e)}
@@ -23,61 +23,100 @@ def process_pdf(pdf_path: str) -> dict:
 pdf_tool = FunctionTool(process_pdf)
 
 def index_pdfs():
-    """Indexes all PDFs in pdfs/ subfolders (4XX, Honors, STIC)."""
+    """Indexes all PDFs in all pdfs/ subfolders."""
     pdf_data = []
-    subfolders = ["4XX", "Honors", "STIC"]
     script_dir = os.path.dirname(__file__)
-    for subfolder in subfolders:
-        search_pattern = os.path.join(script_dir, "pdfs", subfolder, "*.pdf")
-        pdf_paths = glob.glob(search_pattern)
-        for pdf_path in pdf_paths:
-            result = process_pdf(pdf_path)
-            if result["status"] == "success":
-                pdf_data.append(result)
-            else:
-                print(f"Failed to process {pdf_path}: {result['error']}")
+    pdfs_dir = os.path.join(script_dir, "pdfs")
+    
+    # Get all subdirectories in the pdfs directory
+    try:
+        # List all items in the pdfs directory
+        subfolders = [f for f in os.listdir(pdfs_dir) 
+                     if os.path.isdir(os.path.join(pdfs_dir, f))]
+        
+        if not subfolders:
+            print(f"Warning: No subdirectories found in {pdfs_dir}")
+            
+        # Process each subfolder
+        for subfolder in subfolders:
+            print(f"Scanning subfolder: {subfolder}")
+            search_pattern = os.path.join(pdfs_dir, subfolder, "*.pdf")
+            pdf_paths = glob.glob(search_pattern)
+            
+            if not pdf_paths:
+                print(f"No PDFs found in {subfolder}")
+                continue
+                
+            print(f"Found {len(pdf_paths)} PDFs in {subfolder}")
+            for pdf_path in pdf_paths:
+                result = process_pdf(pdf_path)
+                if result["status"] == "success":
+                    pdf_data.append(result)
+                else:
+                    print(f"Failed to process {pdf_path}: {result['error']}")
+    except Exception as e:
+        print(f"Error accessing pdfs directory: {e}")
+        
     return pdf_data
 
-def determine_subtopics(query: str) -> list:
-    """Determines which subfolders to search based on query keywords."""
-    query = query.lower()
-    subtopics = []
-    
-    # Keywords for each subtopic
-    if re.search(r'\b(400-level|senior|cmsc4[0-9]{2})\b', query):
-        subtopics.append("4XX")
-    if re.search(r'\b(honors|distinguished|cmsc499)\b', query):
-        subtopics.append("Honors")
-    if re.search(r'\b(stic|student-taught|special topics|cmsc198)\b', query):
-        subtopics.append("STIC")
-    
-    # If no specific subtopics matched, search all
-    if not subtopics:
-        subtopics = ["4XX", "Honors", "STIC"]
-    
-    return subtopics
-
 def search_pdfs(query: str, pdf_data: list) -> list:
-    """Searches PDF data for query-relevant information, filtering by subtopic."""
-    subtopics = determine_subtopics(query)
+    """Searches all PDF data for query-relevant information, regardless of subfolder."""
     results = []
     query_lower = query.lower()
     query_keywords = set(query_lower.split())
+    # Remove very common words and short words
+    query_keywords = {k for k in query_keywords if len(k) > 2 and k not in {'the', 'and', 'for', 'are', 'you', 'not', 'but', 'with', 'can'}}
     
+    # Search through all PDFs regardless of subtopic
     for doc in pdf_data:
-        if doc["subtopic"] in subtopics:
-            # Simple search - look for query keywords in the document text
-            doc_text = doc["text"].lower()
-            # If the full query is in the text or any keyword longer than 2 chars
-            if query_lower in doc_text or any(keyword in doc_text for keyword in query_keywords if len(keyword) > 2):
-                # Add relevant context with the filename
-                context = f"[{doc['filename']}] Found relevant information: " + doc["text"][:500]
-                if len(doc["text"]) > 500:
-                    context += "... (additional content available)"
+        doc_text = doc["text"].lower()
+        
+        # Check if the query or keywords appear in the document at all
+        if query_lower in doc_text or any(keyword in doc_text for keyword in query_keywords):
+            # Split document into paragraphs (better context than arbitrary character cuts)
+            paragraphs = [p.strip() for p in doc["text"].split('\n\n') if p.strip()]
+            
+            # Find paragraphs containing query terms
+            relevant_paragraphs = []
+            for paragraph in paragraphs:
+                paragraph_lower = paragraph.lower()
+                # Check for full query or multiple keywords
+                if query_lower in paragraph_lower or sum(1 for k in query_keywords if k in paragraph_lower) >= 1:
+                    relevant_paragraphs.append(paragraph)
+            
+            # If we found relevant paragraphs, use those
+            if relevant_paragraphs:
+                # Join up to 3 most relevant paragraphs with context indicators
+                # Include subtopic in the result for informational purposes
+                context = f"[{doc['filename']} ({doc['subtopic']})] " + " [...] ".join(relevant_paragraphs[:3])
+                results.append(context)
+            else:
+                # Fallback to the beginning of the document if no specific paragraphs match
+                context = f"[{doc['filename']} ({doc['subtopic']})] Document contains relevant information: " + doc["text"][:800]
+                if len(doc["text"]) > 800:
+                    context += "... (continued)"
                 results.append(context)
     
-    # Limit total results
-    return results[:10]  # Return top 5 most relevant pieces of information
+    # If no results found, try a more lenient search
+    if not results and query_keywords:
+        print("No exact matches found, trying lenient search...")
+        for doc in pdf_data:
+            doc_text = doc["text"].lower()
+            # Check if ANY keyword appears
+            if any(keyword in doc_text for keyword in query_keywords):
+                context = f"[{doc['filename']} ({doc['subtopic']})] May contain related information: " + doc["text"][:500]
+                if len(doc["text"]) > 500:
+                    context += "... (continued)"
+                results.append(context)
+    
+    # Include search metadata
+    if results:
+        results.insert(0, f"Found {len(results)} relevant documents")
+    else:
+        results = ["No information found matching your query in any PDF documents."]
+        
+    # Return top results (increased from 5 to 10 to provide more comprehensive information)
+    return results[:10]
 
 # Keep search_tool definition out for now, will be created in agent.py
 # search_tool = FunctionTool(search_pdfs)
