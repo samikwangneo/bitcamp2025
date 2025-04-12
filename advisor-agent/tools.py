@@ -77,7 +77,7 @@ def search_pdfs(query: str, pdf_data: list) -> list:
                 results.append(context)
     
     # Limit total results
-    return results  # Return top 5 most relevant pieces of information
+    return results[:10]  # Return top 5 most relevant pieces of information
 
 # Keep search_tool definition out for now, will be created in agent.py
 # search_tool = FunctionTool(search_pdfs)
