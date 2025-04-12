@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  SafeAreaView,
   StyleSheet,
   View,
   Text,
@@ -12,10 +11,18 @@ import {
   TextInput,
   Dimensions,
   Animated,
-  Image,
+  StatusBar,
+  Keyboard,
 } from 'react-native';
+import ProfileScreen from './profile'; // Import ProfileScreen from separate file
+import { ThemeProvider, useTheme } from './themeContext'; // Import from new file
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Default status bar height values
+const STATUS_BAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 24;
+
+const BOTTOM_SAFE_AREA = Platform.OS === 'ios' ? 34 : 0;
 
 type Message = {
   text: string;
@@ -41,150 +48,6 @@ type UserProfile = {
   };
 };
 
-// Profile component
-const ProfileScreen = ({ 
-  profile, 
-  setProfile, 
-  onBack 
-}: { 
-  profile: UserProfile, 
-  setProfile: (profile: UserProfile) => void, 
-  onBack: () => void 
-}) => {
-  const [editedProfile, setEditedProfile] = useState<UserProfile>({...profile});
-
-  const saveProfile = () => {
-    setProfile(editedProfile);
-    onBack();
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton} onPress={onBack}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Edit Profile</Text>
-        </View>
-      </View>
-
-      <ScrollView style={styles.profileContainer}>
-        <View style={styles.profileImageContainer}>
-          <View style={styles.profileImage}>
-            <Text style={styles.profileImagePlaceholder}>
-              {profile.name.split(' ').map(name => name[0]).join('')}
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.changePhotoButton}>
-            <Text style={styles.changePhotoText}>Change Photo</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Name</Text>
-          <TextInput
-            style={styles.profileInput}
-            value={editedProfile.name}
-            onChangeText={(text) => setEditedProfile({...editedProfile, name: text})}
-            placeholder="Your Name"
-            placeholderTextColor="#A1B5D8"
-          />
-        </View>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Email</Text>
-          <TextInput
-            style={styles.profileInput}
-            value={editedProfile.email}
-            onChangeText={(text) => setEditedProfile({...editedProfile, email: text})}
-            placeholder="your.email@example.com"
-            placeholderTextColor="#A1B5D8"
-            keyboardType="email-address"
-          />
-        </View>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Major</Text>
-          <TextInput
-            style={styles.profileInput}
-            value={editedProfile.major}
-            onChangeText={(text) => setEditedProfile({...editedProfile, major: text})}
-            placeholder="Your Major"
-            placeholderTextColor="#A1B5D8"
-          />
-        </View>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Year</Text>
-          <TextInput
-            style={styles.profileInput}
-            value={editedProfile.year}
-            onChangeText={(text) => setEditedProfile({...editedProfile, year: text})}
-            placeholder="Freshman, Sophomore, Junior, Senior"
-            placeholderTextColor="#A1B5D8"
-          />
-        </View>
-
-        <View style={styles.preferenceSection}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          
-          <View style={styles.preferenceItem}>
-            <Text style={styles.preferenceLabel}>Push Notifications</Text>
-            <TouchableOpacity 
-              style={[
-                styles.toggleButton, 
-                editedProfile.preferences.notifications ? styles.toggleActive : {}
-              ]}
-              onPress={() => setEditedProfile({
-                ...editedProfile, 
-                preferences: {
-                  ...editedProfile.preferences,
-                  notifications: !editedProfile.preferences.notifications
-                }
-              })}
-            >
-              <View style={[
-                styles.toggleCircle, 
-                editedProfile.preferences.notifications ? styles.toggleCircleActive : {}
-              ]} />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.preferenceItem}>
-            <Text style={styles.preferenceLabel}>Dark Mode</Text>
-            <TouchableOpacity 
-              style={[
-                styles.toggleButton, 
-                editedProfile.preferences.darkMode ? styles.toggleActive : {}
-              ]}
-              onPress={() => setEditedProfile({
-                ...editedProfile, 
-                preferences: {
-                  ...editedProfile.preferences,
-                  darkMode: !editedProfile.preferences.darkMode
-                }
-              })}
-            >
-              <View style={[
-                styles.toggleCircle, 
-                editedProfile.preferences.darkMode ? styles.toggleCircleActive : {}
-              ]} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <TouchableOpacity 
-          style={styles.saveButton}
-          onPress={saveProfile}
-        >
-          <Text style={styles.saveButtonText}>Save Changes</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
-
 const AdvisorAI = () => {
   // Default user profile
   const [userProfile, setUserProfile] = useState<UserProfile>({
@@ -198,6 +61,16 @@ const AdvisorAI = () => {
     }
   });
 
+  // Access theme context - now using the imported hook
+  const { isDarkMode, toggleTheme, theme } = useTheme();
+
+  // Update theme when profile preference changes
+  useEffect(() => {
+    if (isDarkMode !== userProfile.preferences.darkMode) {
+      toggleTheme();
+    }
+  }, []);
+  
   // Sample previous chat sessions
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([
     {
@@ -238,9 +111,18 @@ const AdvisorAI = () => {
   const [inputText, setInputText] = useState<string>('');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [showProfileScreen, setShowProfileScreen] = useState<boolean>(false);
+  const [isTyping, setIsTyping] = useState<boolean>(false);
   
   // Animation value for sidebar
   const sidebarAnimation = useRef(new Animated.Value(0)).current;
+  // Animation value for categories container
+  const categoriesAnimation = useRef(new Animated.Value(1)).current;
+
+  // Check if there are any user messages in the chat
+  const hasUserMessages = messages.some(message => message.sender === 'user');
+
+  // Should hide categories if user is typing OR there are user messages
+  const shouldHideCategories = isTyping || hasUserMessages;
 
   useEffect(() => {
     Animated.timing(sidebarAnimation, {
@@ -249,6 +131,25 @@ const AdvisorAI = () => {
       useNativeDriver: false,
     }).start();
   }, [isSidebarOpen]);
+
+  useEffect(() => {
+    Animated.timing(categoriesAnimation, {
+      toValue: shouldHideCategories ? 0 : 1,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [shouldHideCategories]);
+
+  // Update user profile when theme changes
+  useEffect(() => {
+    setUserProfile(prev => ({
+      ...prev,
+      preferences: {
+        ...prev.preferences,
+        darkMode: isDarkMode
+      }
+    }));
+  }, [isDarkMode]);
 
   const sidebarWidth = SCREEN_WIDTH * 0.75;
   
@@ -261,6 +162,12 @@ const AdvisorAI = () => {
     inputRange: [0, 1],
     outputRange: [0, 0.5],
   });
+  
+  const categoriesOpacity = categoriesAnimation;
+  const categoriesHeight = categoriesAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, SCREEN_HEIGHT * 0.1],
+  });
 
   const categories = [
     { name: 'Courses', icon: '📚' },
@@ -272,6 +179,9 @@ const AdvisorAI = () => {
 
   const getCategoryResponse = (category: string) => {
     setIsLoading(true);
+    // Dismiss keyboard when a category is selected
+    Keyboard.dismiss();
+    
     setTimeout(() => {
       let response = '';
       switch (category) {
@@ -310,6 +220,10 @@ const AdvisorAI = () => {
 
   const handleSendMessage = () => {
     if (!inputText.trim()) return;
+    
+    // Dismiss keyboard when send button is clicked
+    Keyboard.dismiss();
+    
     const userMessage: Message = {
       text: inputText,
       sender: 'user',
@@ -317,6 +231,7 @@ const AdvisorAI = () => {
     };
     setMessages((prevMessages) => [...prevMessages, userMessage]);
     setInputText('');
+    setIsTyping(false);
     setIsLoading(true);
     setTimeout(() => {
       const aiMessage: Message = {
@@ -327,6 +242,11 @@ const AdvisorAI = () => {
       setMessages((prevMessages) => [...prevMessages, aiMessage]);
       setIsLoading(false);
     }, 1000);
+  };
+
+  const handleTextInputChange = (text: string) => {
+    setInputText(text);
+    setIsTyping(text.length > 0);
   };
 
   const formatTime = (date: Date) => {
@@ -359,6 +279,8 @@ const AdvisorAI = () => {
   };
 
   const toggleSidebar = () => {
+    // Dismiss keyboard when sidebar is toggled
+    Keyboard.dismiss();
     setIsSidebarOpen(!isSidebarOpen);
   };
 
@@ -367,266 +289,469 @@ const AdvisorAI = () => {
     setShowProfileScreen(true);
   };
 
+  // Pass updated theme to ProfileScreen
   if (showProfileScreen) {
     return (
       <ProfileScreen 
         profile={userProfile} 
         setProfile={setUserProfile} 
         onBack={() => setShowProfileScreen(false)} 
+        isDarkMode={isDarkMode}
+        toggleTheme={toggleTheme}
       />
     );
   }
 
+  // Create dynamic styles based on theme
+  const dynamicStyles = StyleSheet.create({
+    // ... All your dynamic styles remain the same
+    container: {
+      flex: 1,
+      backgroundColor: theme.background,
+    },
+    header: {
+      padding: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      shadowColor: theme.shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 4,
+      position: 'relative',
+      backgroundColor: theme.headerBackground,
+      // Add padding for status bar
+      paddingTop: Platform.OS === 'android' ? STATUS_BAR_HEIGHT + 16 : 16 + STATUS_BAR_HEIGHT,
+    },
+    menuIcon: {
+      fontSize: 24,
+      color: theme.text,
+    },
+    headerTitle: {
+      fontSize: 26,
+      fontWeight: '700',
+      color: theme.text,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: theme.textSecondary,
+      marginTop: 4,
+    },
+    categoryButton: {
+      padding: 8,
+      marginHorizontal: 8,
+      backgroundColor: theme.surface,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: 80,
+    },
+    categoryText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.textSecondary,
+    },
+    userBubble: {
+      backgroundColor: theme.userBubble,
+      alignSelf: 'flex-end',
+      marginLeft: 50,
+      paddingRight: 42,
+      paddingBottom: 20,
+      minWidth: 70,
+    },
+    aiBubble: {
+      backgroundColor: theme.aiBubble,
+      alignSelf: 'flex-start',
+      marginRight: 50,
+      maxWidth: '85%',
+    },
+    messageText: {
+      fontSize: 16,
+      lineHeight: 22,
+      color: theme.text,
+    },
+    // New style for user message text that's always white
+    userMessageText: {
+      fontSize: 16,
+      lineHeight: 22,
+      color: '#FFFFFF', // Always white
+    },
+    timestamp: {
+      fontSize: 12,
+      color: theme.secondary,
+      alignSelf: 'flex-end',
+      marginTop: 4,
+    },
+    userTimestamp: {
+      fontSize: 12,
+      color: '#FFFFFF', // Always white for user bubble
+      position: 'absolute',
+      right: 12,
+      bottom: 4,
+    },
+    loadingText: {
+      marginLeft: 8,
+      fontSize: 14,
+      color: theme.secondary,
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      padding: 12,
+      backgroundColor: theme.inputBackground,
+      borderTopWidth: 1,
+      borderTopColor: isDarkMode ? '#333333' : '#E0E0E0',
+      alignItems: 'center',
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingBottom: BOTTOM_SAFE_AREA,
+    },
+    input: {
+      flex: 1,
+      borderRadius: 20,
+      padding: 12,
+      paddingHorizontal: 16,
+      fontSize: 16,
+      color: theme.text,
+      backgroundColor: isDarkMode ? 'transparent' : '#F5F5F7',
+      maxHeight: 100,
+      marginRight: 8,
+    },
+    sidebar: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      bottom: 0,
+      backgroundColor: theme.sidebarBackground,
+      zIndex: 100,
+      elevation: 5,
+      shadowColor: theme.shadowColor,
+      shadowOffset: { width: 2, height: 0 },
+      shadowOpacity: 0.3,
+      shadowRadius: 5,
+      display: 'flex',
+      flexDirection: 'column',
+      // Add padding for status bar at the top
+      paddingTop: STATUS_BAR_HEIGHT,
+    },
+    overlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: theme.overlayColor,
+      zIndex: 99,
+    },
+    sidebarTitle: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: theme.text,
+    },
+    sidebarCloseButton: {
+      fontSize: 20,
+      color: theme.secondary,
+      padding: 4,
+    },
+    newChatButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.surface,
+      padding: 12,
+      margin: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.accent,
+    },
+    newChatText: {
+      fontSize: 16,
+      color: theme.accent,
+      fontWeight: '500',
+    },
+    chatHistoryItem: {
+      backgroundColor: theme.surface,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: isDarkMode ? 'transparent' : '#E0E0E0',
+    },
+    chatHistoryTitle: {
+      fontSize: 16,
+      fontWeight: '500',
+      color: theme.text,
+    },
+    chatHistoryDate: {
+      fontSize: 12,
+      color: theme.secondary,
+      marginTop: 4,
+    },
+    profileName: {
+      fontSize: 16,
+      fontWeight: '500',
+      color: theme.text,
+    },
+    profileEmail: {
+      fontSize: 12,
+      color: theme.secondary,
+    },
+  });
+
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoid}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.menuButton} onPress={toggleSidebar}>
-            <Text style={styles.menuIcon}>☰</Text>
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>AdvisorAI</Text>
-            <Text style={styles.headerSubtitle}>Your College Companion</Text>
-          </View>
-        </View>
-
-        {/* Category quick access */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesContainer}
+    <View style={dynamicStyles.container}>
+      {/* Set StatusBar based on theme */}
+      <StatusBar barStyle={theme.statusBarStyle} translucent backgroundColor="transparent" />
+      
+      {/* Use regular View instead of SafeAreaView with edges */}
+      <View style={styles.safeAreaBottom}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoid}
         >
-          {categories.map((cat, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.categoryButton}
-              onPress={() => getCategoryResponse(cat.name)}
+          {/* Header with centered title - Add paddingTop for status bar */}
+          <View style={dynamicStyles.header}>
+            <TouchableOpacity 
+              style={styles.menuButton} 
+              onPress={toggleSidebar}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.categoryIcon}>{cat.icon}</Text>
-              <Text style={styles.categoryText}>{cat.name}</Text>
+              <Text style={dynamicStyles.menuIcon}>☰</Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+            
+            <View style={styles.headerTitleContainer}>
+              <Text style={dynamicStyles.headerTitle}>AdvisorAI</Text>
+              <Text style={dynamicStyles.headerSubtitle}>Your College Companion</Text>
+            </View>
+            
+            {/* Add an empty View with the same width as the menu button for balance */}
+            <View style={styles.menuButton} />
+          </View>
 
-        {/* Chat messages */}
-        <ScrollView
-          style={styles.messagesContainer}
-          contentContainerStyle={styles.messagesContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {messages.map((message, index) => (
-            <View
-              key={index}
-              style={[
-                styles.messageBubble,
-                message.sender === 'user' ? styles.userBubble : styles.aiBubble,
-              ]}
+          <View style={styles.contentContainer}>
+            {/* Chat messages */}
+            <ScrollView
+              style={styles.messagesContainer}
+              contentContainerStyle={styles.messagesContent}
+              showsVerticalScrollIndicator={false}
             >
-              {message.sender === 'ai' && (
-                <View style={styles.aiIconContainer}>
-                  <Text style={styles.aiIcon}>🤖</Text>
+              {messages.map((message, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.messageBubble,
+                    message.sender === 'user' ? dynamicStyles.userBubble : dynamicStyles.aiBubble,
+                  ]}
+                >
+                  {message.sender === 'ai' ? (
+                    // AI message with icon
+                    <>
+                      <View style={styles.aiIconContainer}>
+                        <Text style={styles.aiIcon}>🤖</Text>
+                      </View>
+                      <View style={styles.messageTextContainer}>
+                        <Text style={dynamicStyles.messageText}>{message.text}</Text>
+                        <Text style={dynamicStyles.timestamp}>{formatTime(message.timestamp)}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    // User message without the flex container - Now using userMessageText style
+                    <>
+                      <Text style={dynamicStyles.userMessageText}>{message.text}</Text>
+                      <Text style={dynamicStyles.userTimestamp}>{formatTime(message.timestamp)}</Text>
+                    </>
+                  )}
+                </View>
+              ))}
+              {isLoading && (
+                <View style={[styles.messageBubble, dynamicStyles.aiBubble]}>
+                  <View style={styles.aiIconContainer}>
+                    <Text style={styles.aiIcon}>🤖</Text>
+                  </View>
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={theme.secondary} />
+                    <Text style={dynamicStyles.loadingText}>Thinking...</Text>
+                  </View>
                 </View>
               )}
-              <View style={styles.messageTextContainer}>
-                <Text style={styles.messageText}>{message.text}</Text>
-                <Text style={styles.timestamp}>{formatTime(message.timestamp)}</Text>
-              </View>
-            </View>
-          ))}
-          {isLoading && (
-            <View style={[styles.messageBubble, styles.aiBubble]}>
-              <View style={styles.aiIconContainer}>
-                <Text style={styles.aiIcon}>🤖</Text>
-              </View>
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#A1B5D8" />
-                <Text style={styles.loadingText}>Thinking...</Text>
-              </View>
-            </View>
-          )}
-        </ScrollView>
+            </ScrollView>
 
-        {/* Input field */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Ask AdvisorAI anything..."
-            placeholderTextColor="#A1B5D8"
-            multiline
-          />
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              inputText.trim() ? styles.sendButtonActive : null,
-            ]}
-            onPress={handleSendMessage}
-            disabled={!inputText.trim()}
-          >
-            <Text style={styles.sendButtonText}>➤</Text>
-          </TouchableOpacity>
-        </View>
+            {/* Category quick access - POSITIONED ABSOLUTELY OVER MESSAGES */}
+            <Animated.View 
+              style={[
+                styles.categoriesContainerAbsolute,
+                { 
+                  opacity: categoriesOpacity,
+                  height: categoriesHeight,
+                }
+              ]}
+            >
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesContent}
+              >
+                {categories.map((cat, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={dynamicStyles.categoryButton}
+                    onPress={() => getCategoryResponse(cat.name)}
+                  >
+                    <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                    <Text style={dynamicStyles.categoryText}>{cat.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </Animated.View>
+          </View>
 
-        {/* Sidebar overlay */}
-        {isSidebarOpen && (
-          <TouchableOpacity 
-            style={[styles.overlay, { opacity: overlayOpacity }]} 
-            activeOpacity={1}
-            onPress={() => setIsSidebarOpen(false)}
-          />
-        )}
-
-        {/* Sidebar */}
-        <Animated.View 
-          style={[
-            styles.sidebar,
-            { 
-              width: sidebarWidth,
-              transform: [{ translateX: sidebarTranslateX }] 
-            }
-          ]}
-        >
-          <View style={styles.sidebarHeader}>
-            <Text style={styles.sidebarTitle}>Chat History</Text>
-            <TouchableOpacity onPress={() => setIsSidebarOpen(false)}>
-              <Text style={styles.sidebarCloseButton}>✕</Text>
+          {/* Input field */}
+          <View style={dynamicStyles.inputContainer}>
+            <TextInput
+              style={dynamicStyles.input}
+              value={inputText}
+              onChangeText={handleTextInputChange}
+              placeholder="Ask AdvisorAI anything..."
+              placeholderTextColor={isDarkMode ? "#999999" : "#888888"}
+              multiline
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                inputText.trim() ? styles.sendButtonActive : null,
+              ]}
+              onPress={handleSendMessage}
+              disabled={!inputText.trim()}
+            >
+              <Text style={styles.sendButtonText}>➤</Text>
             </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity 
-            style={styles.newChatButton}
-            onPress={startNewChat}
+
+          {/* Sidebar overlay */}
+          {isSidebarOpen && (
+            <TouchableOpacity 
+              style={[dynamicStyles.overlay, { opacity: overlayOpacity }]} 
+              activeOpacity={1}
+              onPress={() => setIsSidebarOpen(false)}
+            />
+          )}
+
+          {/* Sidebar */}
+          <Animated.View 
+            style={[
+              dynamicStyles.sidebar,
+              { 
+                width: sidebarWidth,
+                transform: [{ translateX: sidebarTranslateX }] 
+              }
+            ]}
           >
-            <Text style={styles.newChatIcon}>+</Text>
-            <Text style={styles.newChatText}>Start New Chat</Text>
-          </TouchableOpacity>
-          
-          <ScrollView style={styles.chatHistoryList}>
-            {chatSessions.map((session) => (
-              <TouchableOpacity
-                key={session.id}
-                style={[
-                  styles.chatHistoryItem,
-                  currentChatId === session.id && styles.activeChatItem
-                ]}
-                onPress={() => loadChatSession(session.id)}
-              >
-                <Text style={styles.chatHistoryTitle}>{session.title}</Text>
-                <Text style={styles.chatHistoryDate}>{formatDate(session.date)}</Text>
+            <View style={styles.sidebarHeader}>
+              <Text style={dynamicStyles.sidebarTitle}>Chat History</Text>
+              <TouchableOpacity onPress={() => setIsSidebarOpen(false)}>
+                <Text style={dynamicStyles.sidebarCloseButton}>✕</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-          
-          {/* Profile button at bottom of sidebar */}
-          <TouchableOpacity 
-            style={styles.profileButton}
-            onPress={openProfileScreen}
-          >
-            <View style={styles.profileButtonContent}>
-              <View style={styles.profileAvatar}>
-                <Text style={styles.profileAvatarText}>
-                  {userProfile.name.split(' ').map(name => name[0]).join('')}
-                </Text>
-              </View>
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{userProfile.name}</Text>
-                <Text style={styles.profileEmail}>{userProfile.email}</Text>
-              </View>
             </View>
-            <Text style={styles.profileEditIcon}>⚙️</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            
+            <TouchableOpacity 
+              style={dynamicStyles.newChatButton}
+              onPress={startNewChat}
+            >
+              <Text style={styles.newChatIcon}>+</Text>
+              <Text style={dynamicStyles.newChatText}>Start New Chat</Text>
+            </TouchableOpacity>
+            
+            <ScrollView style={styles.chatHistoryList}>
+              {chatSessions.map((session) => (
+                <TouchableOpacity
+                  key={session.id}
+                  style={[
+                    dynamicStyles.chatHistoryItem,
+                    currentChatId === session.id && styles.activeChatItem
+                  ]}
+                  onPress={() => loadChatSession(session.id)}
+                >
+                  <Text style={dynamicStyles.chatHistoryTitle}>{session.title}</Text>
+                  <Text style={dynamicStyles.chatHistoryDate}>{formatDate(session.date)}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            
+            {/* Profile button at bottom of sidebar */}
+            <TouchableOpacity 
+              style={styles.profileButton}
+              onPress={openProfileScreen}
+            >
+              <View style={styles.profileButtonContent}>
+                <View style={styles.profileAvatar}>
+                  <Text style={styles.profileAvatarText}>
+                    {userProfile.name.split(' ').map(name => name[0]).join('')}
+                  </Text>
+                </View>
+                <View style={styles.profileInfo}>
+                  <Text style={dynamicStyles.profileName}>{userProfile.name}</Text>
+                  <Text style={dynamicStyles.profileEmail}>{userProfile.email}</Text>
+                </View>
+              </View>
+              <Text style={styles.profileEditIcon}>⚙️</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </View>
+    </View>
   );
 };
 
+// Static styles that don't change with theme
 const styles = StyleSheet.create({
-  container: {
+  // ... All your static styles remain the same
+  safeAreaBottom: {
     flex: 1,
-    backgroundColor: '#000000',
   },
   keyboardAvoid: {
     flex: 1,
   },
-  header: {
-    backgroundColor: '#1E293B',
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
   menuButton: {
     padding: 8,
-    marginRight: 16,
-  },
-  menuIcon: {
-    fontSize: 24,
-    color: '#FFFFFF',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: '#FFFFFF',
+    width: 40,
+    alignItems: 'flex-start',
   },
   headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#F2EFE9',
-    marginTop: 4,
-  },
-  categoriesContainer: {
-    height: SCREEN_HEIGHT * 0.1, // Set to 10% of screen height
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-    flex: 0,
-    backgroundColor: '#1E293B',
-  },
-  categoryButton: {
-    height: SCREEN_HEIGHT * 0.1 - 16, // Fit within container height
-    padding: 8,
-    marginHorizontal: 8,
-    backgroundColor: '#334155',
-    borderRadius: 12,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    // Adjust top position to include status bar height
+    paddingTop: Platform.OS === 'android' ? STATUS_BAR_HEIGHT + 16 : STATUS_BAR_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 80,
-    borderWidth: 1,
-    borderColor: '#475569',
+  },
+  contentContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  categoriesContainerAbsolute: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    overflow: 'hidden',
+  },
+  categoriesContent: {
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: 'center',
   },
   categoryIcon: {
     fontSize: 20,
     marginBottom: 4,
   },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#E2E8F0',
-  },
   messagesContainer: {
-    flex: 0,
-    height: SCREEN_HEIGHT * .55,
+    flex: 1,
     paddingHorizontal: 16,
   },
   messagesContent: {
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: 20, // Add padding to accommodate categories at top
+    paddingBottom: 400,
   },
   messageBubble: {
     flexDirection: 'row',
@@ -640,16 +765,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  userBubble: {
-    backgroundColor: '#3B82F6',
-    alignSelf: 'flex-end',
-    marginLeft: 50,
-  },
-  aiBubble: {
-    backgroundColor: '#1E293B',
-    alignSelf: 'flex-start',
-    marginRight: 50,
-  },
   aiIconContainer: {
     marginRight: 8,
     alignSelf: 'flex-start',
@@ -660,49 +775,14 @@ const styles = StyleSheet.create({
   messageTextContainer: {
     flex: 1,
   },
-  messageText: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: '#E2E8F0',
-  },
-  timestamp: {
-    fontSize: 12,
-    color: '#A1B5D8',
-    alignSelf: 'flex-end',
-    marginTop: 4,
-  },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
     padding: 8,
   },
-  loadingText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#A1B5D8',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#1E293B',
-    borderTopWidth: 1,
-    borderTopColor: '#475569',
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#334155',
-    borderRadius: 20,
-    padding: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#FFFFFF',
-    maxHeight: 100,
-    marginRight: 8,
-  },
   sendButton: {
-    backgroundColor: '#64748B',
+    backgroundColor: '#B17777',
     borderRadius: 20,
     width: 40,
     height: 40,
@@ -710,110 +790,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendButtonActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#C3423F',
   },
   sendButtonText: {
     fontSize: 20,
     color: '#FFFFFF',
-  },
-  sidebar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    backgroundColor: '#1E293B',
-    zIndex: 100,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#000',
-    zIndex: 99,
   },
   sidebarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#475569',
-  },
-  sidebarTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  sidebarCloseButton: {
-    fontSize: 20,
-    color: '#A1B5D8',
-    padding: 4,
-  },
-  newChatButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#334155',
-    padding: 12,
-    margin: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#3B82F6',
   },
   newChatIcon: {
     fontSize: 18,
-    color: '#3B82F6',
+    color: '#D88483',
     marginRight: 8,
-  },
-  newChatText: {
-    fontSize: 16,
-    color: '#3B82F6',
-    fontWeight: '500',
   },
   chatHistoryList: {
     flex: 1,
     paddingHorizontal: 16,
   },
-  chatHistoryItem: {
-    backgroundColor: '#334155',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#475569',
-  },
   activeChatItem: {
     borderColor: '#3B82F6',
-  },
-  chatHistoryTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#FFFFFF',
-  },
-  chatHistoryDate: {
-    fontSize: 12,
-    color: '#A1B5D8',
-    marginTop: 4,
+    borderWidth: 1,
   },
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#334155',
     padding: 12,
     margin: 16,
     marginTop: 0,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#475569',
   },
   profileButtonContent: {
     flexDirection: 'row',
@@ -837,119 +845,18 @@ const styles = StyleSheet.create({
   profileInfo: {
     flex: 1,
   },
-  profileName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#FFFFFF',
-  },
-  profileEmail: {
-    fontSize: 12,
-    color: '#A1B5D8',
-  },
   profileEditIcon: {
     fontSize: 18,
   },
-  // Profile screen styles
-  profileContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  profileImageContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#3B82F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  profileImagePlaceholder: {
-    fontSize: 36,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  changePhotoButton: {
-    padding: 8,
-  },
-  changePhotoText: {
-    fontSize: 16,
-    color: '#3B82F6',
-    fontWeight: '500',
-  },
-  inputSection: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 14,
-    color: '#A1B5D8',
-    marginBottom: 8,
-  },
-  profileInput: {
-    backgroundColor: '#334155',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    color: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#475569',
-  },
-  preferenceSection: {
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  preferenceItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  preferenceLabel: {
-    fontSize: 16,
-    color: '#FFFFFF',
-  },
-  toggleButton: {
-    width: 50,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#475569',
-    padding: 2,
-    justifyContent: 'center',
-  },
-  toggleActive: {
-    backgroundColor: '#3B82F6',
-  },
-  toggleCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    alignSelf: 'flex-start',
-  },
-  toggleCircleActive: {
-    alignSelf: 'flex-end',
-  },
-  saveButton: {
-    backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  saveButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
 });
 
-export default AdvisorAI;
+// Main App component with ThemeProvider
+const App = () => {
+  return (
+    <ThemeProvider>
+      <AdvisorAI />
+    </ThemeProvider>
+  );
+};
+
+export default App;
