@@ -193,25 +193,21 @@ def search_pdfs(query: str, pdf_data: list) -> list:
                 f"Best regards,\n"
                 f"[Your Name]")
         
-        # Create Gmail compose URL
-        gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to={urllib.parse.quote(ADVISOR_CONTACT['email'])}&su={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
+        # Create mailto data that React Native can parse
+        email = ADVISOR_CONTACT['email']
+        subject_encoded = urllib.parse.quote(subject)
+        body_encoded = urllib.parse.quote(body)
+        
+        # Add special token [MAILTO:email:subject:body] for React Native to parse
+        email_data = f"[MAILTO:{email}:{subject_encoded}:{body_encoded}]"
         
         # Enhanced email prompt with more contextual information
         email_prompt = (
             f"I apologize, but I couldn't find specific information about '{clean_query}' in our available resources.\n\n"
             f"For detailed guidance on {query_type}, I recommend reaching out directly to {ADVISOR_CONTACT['name']} at {ADVISOR_CONTACT['email']}.\n\n"
-            f"<p><strong>Click the button below to open a pre-formatted email to your academic advisor:</strong></p>"
-            f"<div style='margin: 20px 0;'>"
-            f"<a href=\"{gmail_url}\" target=\"_blank\" style=\"display: inline-block; background-color: #4285F4; color: white; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: Arial, sans-serif;\">Contact Academic Advisor</a>"
-            f"</div>"
-            f"<br>"
-            f"<div style='margin: 20px 0;'>"
-            f"<a href=\"https://terpengage.umd.edu/\" target=\"_blank\" style=\"display: inline-block; background-color: #E21833; color: white; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: Arial, sans-serif;\">Book Meeting via TerpEngage</a>"
-            f"</div>"
-            f"<br>"
-            f"<div style='font-size: 0.9em; color: #666;'>"
-            f"Tip: The advisor can provide personalized guidance on course selection, degree requirements, and academic planning."
-            f"</div>"
+            f"Click below to compose an email to your academic advisor about this topic:\n\n"
+            f"{email_data}\n\n"
+            f"You can also book a meeting with your advisor through TerpEngage."
         )
         
         with open('cs_advisor/email_log.txt', 'a', encoding='utf-8') as f:
@@ -235,7 +231,7 @@ async def _run_degree_audit(credentials):
         # Create a non-persistent browser instance and context (no storage between sessions)
         # Set viewport size and additional parameters for headless mode
         _browser = await playwright.chromium.launch(
-            headless=True,  # Run in headless mode
+            headless=False,  # Run in headless mode
             args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']  # Common headless fixes
         )
         _browser_context = await _browser.new_context(
@@ -1832,24 +1828,16 @@ def create_advisor_email(topic: str) -> dict:
             f"Best regards,\n"
             f"[Your Name]")
     
-    # Create Gmail compose URL
-    gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to={urllib.parse.quote(ADVISOR_CONTACT['email'])}&su={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
+    # Create tokens for React Native compatibility - place token at the end
+    email_token = f"[EMAIL:{ADVISOR_CONTACT['email']}]"
     
-    # Enhanced email prompt with more contextual information
+    # Enhanced email prompt with custom token for mobile apps
+    # Add the token at the end and make sure there's a space before it
     email_prompt = (
-        f"I've prepared an email template to contact {ADVISOR_CONTACT['name']} about '{clean_query}'.\n\n"
-        f"<p><strong>Click the button below to open a pre-formatted email to your academic advisor:</strong></p>"
-        f"<div style='margin: 20px 0;'>"
-        f"<a href=\"{gmail_url}\" target=\"_blank\" style=\"display: inline-block; background-color: #4285F4; color: white; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: Arial, sans-serif;\">Contact Academic Advisor</a>"
-        f"</div>"
-        f"<br>"
-        f"<div style='margin: 20px 0;'>"
-        f"<a href=\"https://terpengage.umd.edu/\" target=\"_blank\" style=\"display: inline-block; background-color: #E21833; color: white; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: Arial, sans-serif;\">Book Meeting via TerpEngage</a>"
-        f"</div>"
-        f"<br>"
-        f"<div style='font-size: 0.9em; color: #666;'>"
-        f"Tip: The advisor can provide personalized guidance on course selection, degree requirements, and academic planning."
-        f"</div>"
+        f"I couldn't find specific information about '{clean_query}' in our available resources.\n\n"
+        f"For detailed guidance on this topic, I recommend contacting {ADVISOR_CONTACT['name']} (Computer Science Advisor). "
+        f"You can tap the button below to compose an email. {email_token}\n\n"
+        f"Alternatively, you can book a meeting with your advisor through TerpEngage."
     )
     
     with open('cs_advisor/email_log.txt', 'a', encoding='utf-8') as f:
@@ -1859,7 +1847,7 @@ def create_advisor_email(topic: str) -> dict:
         "email_template": email_prompt,
         "subject": subject,
         "body": body,
-        "gmail_url": gmail_url,
+        "email": ADVISOR_CONTACT['email'],
         "query_type": query_type,
         "advisor": ADVISOR_CONTACT
     }
