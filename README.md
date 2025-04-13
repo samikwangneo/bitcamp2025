@@ -2,6 +2,8 @@
 
 AdvisorAI is a mobile app and AI-powered backend designed to assist University of Maryland (UMD) Computer Science students with academic advising. The React Native app offers a chat interface for querying course details, while the backend processes PDF data and automates degree audits via UMD's uAchieve system.
 
+Created by Samik Wangneo, Rivan Parikh, Eswar Karavadi, and Aymaan Hussain
+
 ## Table of Contents
 - [Features](#features)
 - [Technologies](#technologies)
