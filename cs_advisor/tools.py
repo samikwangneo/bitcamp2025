@@ -235,7 +235,7 @@ async def _run_degree_audit(credentials):
         # Create a non-persistent browser instance and context (no storage between sessions)
         # Set viewport size and additional parameters for headless mode
         _browser = await playwright.chromium.launch(
-            headless=True,  # Run in headless mode
+            headless=False,  # Run in headless mode
             args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']  # Common headless fixes
         )
         _browser_context = await _browser.new_context(
@@ -669,7 +669,7 @@ async def _run_degree_audit(credentials):
                                     const titleCell = cells[2];
                                     const titleText = titleCell.textContent.trim();
                                     
-                                    if (titleText === 'Computer Science') {
+                                    if (titleText.includes('Computer Science')) {
                                         console.log(`Found Computer Science row: ${titleText}`);
                                         
                                         // Find the View Audit link in the last column (index 8)
