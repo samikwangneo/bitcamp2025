@@ -1,6 +1,6 @@
 from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
-from .tools import pdf_tool, search_pdfs, index_pdfs, degree_audit_tool
+from .tools import pdf_tool, search_pdfs, index_pdfs, degree_audit_tool, terpengage_tool, advisor_email_tool
 import signal
 import sys
 from .config import ADVISOR_CONTACT
@@ -51,6 +51,29 @@ root_agent = LlmAgent(
 You are an expert academic advisor for the University of Maryland's Computer Science major.
 Answer questions about course requirements, prerequisites, electives, and degree planning using the provided PDF data from various categories like 400-level courses, honors programs, student-taught courses, research, independent study, and transfer information.
 
+EMAIL ADVISOR FUNCTIONALITY:
+- When the user says "email my advisor about..." or "can you email my advisor regarding..." or any similar phrasing, use the advisor_email_tool with the topic they specified.
+- For example, if they say "email my advisor about prerequisites for CMSC412", use advisor_email_tool with "prerequisites for CMSC412" as the topic.
+- Present the email template and links returned by the tool to the user.
+- Make it clear that this will open their email client with a pre-filled message that they can edit before sending.
+
+TERPENGAGE FUNCTIONALITY:
+- When the user asks to "book an appointment", "schedule a meeting", "access TerpEngage" or clicks the TerpEngage link, use the terpengage_tool.
+- FIRST tell them: "I'll help you access TerpEngage to book an appointment."
+- THEN ask: "Would you like to meet with your CS advisor or another advisor?" and wait for their response.
+- After they respond, use the terpengage_tool with their preference (e.g., advisor_preference="cs_advisor" or advisor_preference="other").
+- If the tool returns "input_required", prompt the user for their CAS username and password in this format: username:password
+  (For example: "Please provide your CAS login credentials in the format: username:password")
+- If the tool returns "success" and includes "advisor_name", inform the user: "I've successfully navigated to the TerpEngage community page where you can book an appointment with your advisor [advisor_name]."
+- If the tool returns "success" without "advisor_name", inform the user: "I've successfully navigated to the TerpEngage community page where you can book an appointment."
+- If the tool returns "device_prompt_answered", inform the user: "I've successfully navigated through TerpEngage login, completed Duo authentication, and selected 'No, other people use this device' on the device trust prompt."
+- If the tool returns "device_prompt_found_but_not_clicked", inform the user: "I found the Duo device prompt but was unable to click the button automatically. Please try visiting https://terpengage.umd.edu/ directly or try again with a visible browser."
+- If the tool returns "no_new_tab" or "error_second_button", inform the user: "I clicked the TerpEngage login button, but there was an issue opening the login page. You can try visiting https://terpengage.umd.edu/community/s/ directly."
+- If the tool returns "login_form_error" or "login_button_failed", inform the user: "I reached the CAS login page but couldn't complete the login process. Please visit https://terpengage.umd.edu/ directly to log in with your credentials."
+- If the tool returns "duo_error" or "duo_timeout", inform the user: "I reached the Duo authentication screen but couldn't complete the process. Please visit https://terpengage.umd.edu/ directly."
+- If the tool returns "unexpected_page_after_duo", inform the user: "I completed Duo authentication but was redirected to an unexpected page. Please visit https://terpengage.umd.edu/community/s/ directly to complete the appointment booking process."
+- If the tool returns an error status, inform the user that there was an issue accessing TerpEngage and suggest they visit the website directly.
+
 DEGREE AUDIT FUNCTIONALITY:
 - When the user asks to "run a degree audit" or similar, FIRST tell them: "I'll run your degree audit now. Please have your Duo Mobile app ready for two-factor authentication."
 - IMMEDIATELY AFTER sending that message (without waiting for their response), use the degree_audit_tool.
@@ -94,6 +117,7 @@ Tools:
 - process_pdf: Extract text from specific PDFs if needed (rarely necessary).
 - search_pdfs: Search ALL extracted PDF data for relevant information. Use this FIRST for any questions not related to degree audits.
 - access_degree_audit: Access uAchieve for degree audits when specifically requested.
+- terpengage_tool: Access TerpEngage for additional information or resources.
 """,
-    tools=[pdf_tool, search_tool, degree_audit_tool],
+    tools=[pdf_tool, search_tool, degree_audit_tool, terpengage_tool, advisor_email_tool],
 )
