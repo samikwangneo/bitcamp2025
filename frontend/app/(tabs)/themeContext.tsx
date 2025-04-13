@@ -28,7 +28,7 @@ export const darkTheme: ThemeColors = {
   primary: '#C3423F',
   secondary: '#A1B5D8',
   accent: '#D88483',
-  text: '#FFFFFF',
+  text: '#ffffff',
   textSecondary: '#E2E8F0',
   inputBackground: '#1E1E1F',
   sidebarBackground: '#1E1E1F',

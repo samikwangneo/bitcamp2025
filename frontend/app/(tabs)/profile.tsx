@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -33,9 +33,21 @@ type ProfileScreenProps = {
 
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBack }) => {
   const { themeMode, setThemeMode, theme } = useTheme();
-  const [editedProfile, setEditedProfile] = useState<UserProfile>({ ...profile });
+  const [editedProfile, setEditedProfile] = useState<UserProfile>({
+    ...profile,
+    preferences: { ...profile.preferences },
+  });
+
+  useEffect(() => {
+    console.log('ProfileScreen received profile:', profile);
+    setEditedProfile({
+      ...profile,
+      preferences: { ...profile.preferences },
+    });
+  }, [profile]);
 
   const handleSave = () => {
+    console.log('Saving editedProfile:', editedProfile);
     setProfile(editedProfile);
     onBack();
   };
@@ -57,6 +69,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBa
     }));
 
     if (preference === 'themeMode') {
+      console.log('Setting themeMode:', value);
       setThemeMode(value);
     }
   };

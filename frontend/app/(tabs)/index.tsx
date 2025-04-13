@@ -56,24 +56,25 @@ const ADK_API_URL = "https://5fe0-206-139-64-98.ngrok-free.app/run";
 const ADK_BASE_URL = "https://5fe0-206-139-64-98.ngrok-free.app";
 const ADK_APP_NAME = "cs_advisor";
 
-const AdvisorAI = () => {
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: "John Doe",
-    email: "john.doe@university.edu",
-    major: "Computer Science",
-    year: "Junior",
-    preferences: {
-      notifications: true,
-      themeMode: "auto",
-    },
-  });
+const defaultProfile: UserProfile = {
+  name: "John Doe",
+  email: "john.doe@university.edu",
+  major: "Computer Science",
+  year: "Junior",
+  preferences: {
+    notifications: true,
+    themeMode: "auto",
+  },
+};
 
+const AdvisorAI = () => {
+  const [userProfile, setUserProfile] = useState<UserProfile>(defaultProfile);
   const { themeMode, setThemeMode, theme } = useTheme();
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
-      text: "Hello! I'm AdvisorAI, your personal college advisor. I can help you with information about courses, minors, ULCs, CS tracks, and more. How can I assist you today?",
+      text: "Hello! I'm AdvisorAI, your personal college advisor. I can help you with information about major information, degree audit, scheduling advising appointment, email advisor, and more. How can I assist you today?",
       sender: "ai",
       timestamp: new Date(),
     },
@@ -95,6 +96,7 @@ const AdvisorAI = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
+        // Load user ID
         let storedUserId = await AsyncStorage.getItem(USER_ID_KEY);
         if (!storedUserId) {
           storedUserId = uuidv4();
@@ -111,19 +113,65 @@ const AdvisorAI = () => {
           }
         }
         setUserId(storedUserId);
-
+        console.log("User ID loaded:", storedUserId);
+  
+        // Load user profile
         const profileJson = await AsyncStorage.getItem(USER_PROFILE_KEY);
+        console.log("Raw profile JSON from AsyncStorage:", profileJson);
+  
         if (profileJson) {
-          const parsedProfile = JSON.parse(profileJson);
-          parsedProfile.preferences.themeMode =
-            parsedProfile.preferences.themeMode ?? "auto";
-          setUserProfile(parsedProfile);
-          setThemeMode(parsedProfile.preferences.themeMode);
-          console.log("Loaded user profile:", parsedProfile);
+          try {
+            const parsedProfile = JSON.parse(profileJson);
+            console.log("Parsed profile:", parsedProfile);
+  
+            // Validate parsed profile with more detailed checks
+            const isValidProfile = (
+              parsedProfile &&
+              typeof parsedProfile === 'object' &&
+              typeof parsedProfile.name === "string" && parsedProfile.name.trim() !== "" &&
+              typeof parsedProfile.email === "string" && parsedProfile.email.trim() !== "" &&
+              typeof parsedProfile.major === "string" && parsedProfile.major.trim() !== "" &&
+              typeof parsedProfile.year === "string" && parsedProfile.year.trim() !== "" &&
+              parsedProfile.preferences &&
+              typeof parsedProfile.preferences === 'object' &&
+              typeof parsedProfile.preferences.notifications === "boolean" &&
+              ["light", "dark", "auto"].includes(parsedProfile.preferences.themeMode)
+            );
+  
+            if (isValidProfile) {
+              console.log("Profile is valid, applying:", parsedProfile);
+              setUserProfile(parsedProfile);
+              setThemeMode(parsedProfile.preferences.themeMode || "auto");
+            } else {
+              console.warn("Invalid profile structure:", parsedProfile);
+              console.log("Using default profile instead");
+              setUserProfile(defaultProfile);
+              setThemeMode(defaultProfile.preferences.themeMode);
+              await AsyncStorage.setItem(
+                USER_PROFILE_KEY,
+                JSON.stringify(defaultProfile)
+              );
+            }
+          } catch (parseError) {
+            console.error("Error parsing profile JSON:", parseError);
+            setUserProfile(defaultProfile);
+            setThemeMode(defaultProfile.preferences.themeMode);
+            await AsyncStorage.setItem(
+              USER_PROFILE_KEY,
+              JSON.stringify(defaultProfile)
+            );
+          }
         } else {
-          console.log("No user profile found in AsyncStorage");
+          console.log("No profile found in AsyncStorage, using default profile");
+          setUserProfile(defaultProfile);
+          setThemeMode(defaultProfile.preferences.themeMode);
+          await AsyncStorage.setItem(
+            USER_PROFILE_KEY,
+            JSON.stringify(defaultProfile)
+          );
         }
-
+  
+        // Load chat sessions
         const sessionsJson = await AsyncStorage.getItem(CHAT_SESSIONS_KEY);
         if (sessionsJson) {
           const parsedSessions = JSON.parse(sessionsJson).map(
@@ -146,25 +194,32 @@ const AdvisorAI = () => {
         }
       } catch (error) {
         console.error("Error loading data from AsyncStorage:", error);
+        Alert.alert("Error", "Failed to load data. Please restart the app.");
+        setUserProfile(defaultProfile);
+        setThemeMode(defaultProfile.preferences.themeMode);
       }
     };
-
+  
     loadData();
   }, []);
 
   useEffect(() => {
     const saveProfile = async () => {
       try {
-        await AsyncStorage.setItem(
-          USER_PROFILE_KEY,
-          JSON.stringify(userProfile)
-        );
+        console.log("Saving userProfile to AsyncStorage:", userProfile);
+        const profileString = JSON.stringify(userProfile);
+        await AsyncStorage.setItem(USER_PROFILE_KEY, profileString);
+        console.log("UserProfile saved successfully:", profileString);
       } catch (error) {
         console.error("Error saving profile to AsyncStorage:", error);
+        Alert.alert("Error", "Failed to save profile. Please try again.");
       }
     };
 
-    saveProfile();
+    // Only save if the profile has been modified from the default
+    if (JSON.stringify(userProfile) !== JSON.stringify(defaultProfile)) {
+      saveProfile();
+    }
   }, [userProfile]);
 
   useEffect(() => {
@@ -226,11 +281,10 @@ const AdvisorAI = () => {
   });
 
   const categories = [
-    { name: "Courses", icon: "📚" },
-    { name: "Minors", icon: "🎓" },
-    { name: "ULCs", icon: "📝" },
-    { name: "CS Tracks", icon: "💻" },
-    { name: "Deadlines", icon: "📅" },
+    { name: "Major Information", icon: "📚" },
+    { name: "Degree Audit", icon: "🎓" },
+    { name: "Schedule Advising Appointment", icon: "📝" },
+    { name: "Email Your Advisor", icon: "💻" },
   ];
 
   const createAdkSession = async (
