@@ -60,31 +60,37 @@ export const lightTheme: ThemeColors = {
 
 // Theme context type
 export type ThemeContextType = {
-  isDarkMode: boolean;
-  toggleTheme: () => void;
+  themeMode: 'light' | 'dark' | 'auto';
+  setThemeMode: (mode: 'light' | 'dark' | 'auto') => void;
   theme: ThemeColors;
 };
 
 // Create theme context with default values
 export const ThemeContext = createContext<ThemeContextType>({
-  isDarkMode: true,
-  toggleTheme: () => {},
+  themeMode: 'auto',
+  setThemeMode: () => {},
   theme: darkTheme,
 });
 
 // Theme provider component
-export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const systemColorScheme = useColorScheme();
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(systemColorScheme === 'dark' || systemColorScheme === null);
-  
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-  };
-  
-  const theme = isDarkMode ? darkTheme : lightTheme;
-  
+  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'auto'>('auto');
+
+  // Determine the effective theme based on themeMode and system color scheme
+  const theme = themeMode === 'auto'
+    ? (systemColorScheme === 'dark' ? darkTheme : lightTheme)
+    : (themeMode === 'dark' ? darkTheme : lightTheme);
+
+  // Update theme when system color scheme changes (only in auto mode)
+  useEffect(() => {
+    if (themeMode === 'auto') {
+      // Theme will automatically update due to systemColorScheme change
+    }
+  }, [systemColorScheme, themeMode]);
+
   return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleTheme, theme }}>
+    <ThemeContext.Provider value={{ themeMode, setThemeMode, theme }}>
       {children}
     </ThemeContext.Provider>
   );

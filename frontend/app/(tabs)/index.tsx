@@ -15,17 +15,15 @@ import {
   StatusBar,
   Keyboard,
   Alert,
-} from "react-native";
-import "react-native-get-random-values";
-import { v4 as uuidv4 } from "uuid";
-import ProfileScreen from "./profile";
-import { ThemeProvider, useTheme } from "./themeContext";
-import { EmailHandler } from "../../components/EmailHandler";
+} from 'react-native';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
+import ProfileScreen from './profile';
+import { ThemeProvider, useTheme, darkTheme } from './themeContext';
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
-const STATUS_BAR_HEIGHT =
-  Platform.OS === "ios" ? 44 : StatusBar.currentHeight || 24;
-const BOTTOM_SAFE_AREA = Platform.OS === "ios" ? 34 : 0;
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const STATUS_BAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 24;
+const BOTTOM_SAFE_AREA = Platform.OS === 'ios' ? 34 : 0;
 
 type Message = {
   text: string;
@@ -47,7 +45,7 @@ type UserProfile = {
   year: string;
   preferences: {
     notifications: boolean;
-    darkMode: boolean;
+    themeMode: 'light' | 'dark' | 'auto';
   };
 };
 
@@ -63,11 +61,11 @@ const AdvisorAI = () => {
     year: "Junior",
     preferences: {
       notifications: true,
-      darkMode: true,
+      themeMode: 'auto',
     },
   });
 
-  const { isDarkMode, toggleTheme, theme } = useTheme();
+  const { themeMode, setThemeMode, theme } = useTheme();
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
@@ -114,10 +112,10 @@ const AdvisorAI = () => {
         const profileJson = await AsyncStorage.getItem(USER_PROFILE_KEY);
         if (profileJson) {
           const parsedProfile = JSON.parse(profileJson);
-          parsedProfile.preferences.darkMode =
-            parsedProfile.preferences.darkMode ?? true;
+          parsedProfile.preferences.themeMode = parsedProfile.preferences.themeMode ?? 'auto';
           setUserProfile(parsedProfile);
-          console.log("Loaded user profile:", parsedProfile);
+          setThemeMode(parsedProfile.preferences.themeMode);
+          console.log('Loaded user profile:', parsedProfile);
         } else {
           console.log("No user profile found in AsyncStorage");
         }
@@ -164,12 +162,6 @@ const AdvisorAI = () => {
 
     saveProfile();
   }, [userProfile]);
-
-  useEffect(() => {
-    if (isDarkMode !== userProfile.preferences.darkMode) {
-      toggleTheme();
-    }
-  }, [userProfile.preferences.darkMode, isDarkMode, toggleTheme]);
 
   useEffect(() => {
     const saveChatSessions = async () => {
@@ -843,8 +835,8 @@ const AdvisorAI = () => {
       padding: 12,
       backgroundColor: theme.inputBackground,
       borderTopWidth: 1,
-      borderTopColor: isDarkMode ? "#333333" : "#E0E0E0",
-      alignItems: "center",
+      borderTopColor: themeMode === 'dark' || (themeMode === 'auto' && theme === darkTheme) ? '#333333' : '#E0E0E0',
+      alignItems: 'center',
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
       paddingBottom: BOTTOM_SAFE_AREA,
@@ -856,7 +848,7 @@ const AdvisorAI = () => {
       paddingHorizontal: 16,
       fontSize: 16,
       color: theme.text,
-      backgroundColor: isDarkMode ? "transparent" : "#F5F5F7",
+      backgroundColor: themeMode === 'dark' || (themeMode === 'auto' && theme === darkTheme) ? 'transparent' : '#F5F5F7',
       maxHeight: 100,
       marginRight: 8,
     },
@@ -916,7 +908,7 @@ const AdvisorAI = () => {
       padding: 12,
       marginBottom: 12,
       borderWidth: 1,
-      borderColor: isDarkMode ? "transparent" : "#E0E0E0",
+      borderColor: themeMode === 'dark' || (themeMode === 'auto' && theme === darkTheme) ? 'transparent' : '#E0E0E0',
     },
     chatHistoryTitle: {
       fontSize: 16,
@@ -1055,7 +1047,7 @@ const AdvisorAI = () => {
               value={inputText}
               onChangeText={handleTextInputChange}
               placeholder="Ask AdvisorAI anything..."
-              placeholderTextColor={isDarkMode ? "#999999" : "#888888"}
+              placeholderTextColor={themeMode === 'dark' || (themeMode === 'auto' && theme === darkTheme) ? "#999999" : "#888888"}
               multiline
             />
             <TouchableOpacity
