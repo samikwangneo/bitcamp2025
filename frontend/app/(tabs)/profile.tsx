@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Switch,
   Platform,
   StatusBar,
+  Switch,
 } from 'react-native';
-import { useTheme } from './themeContext';
+import { useTheme, darkTheme } from './themeContext';
 
 const STATUS_BAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 24;
 
@@ -21,7 +21,7 @@ type UserProfile = {
   year: string;
   preferences: {
     notifications: boolean;
-    darkMode: boolean;
+    themeMode: 'light' | 'dark' | 'auto';
   };
 };
 
@@ -32,18 +32,11 @@ type ProfileScreenProps = {
 };
 
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBack }) => {
-  const { isDarkMode, toggleTheme, theme } = useTheme();
+  const { themeMode, setThemeMode, theme } = useTheme();
   const [editedProfile, setEditedProfile] = useState<UserProfile>({ ...profile });
 
   const handleSave = () => {
-    // Save all fields except darkMode, which is already saved on toggle
-    setProfile({
-      ...editedProfile,
-      preferences: {
-        ...editedProfile.preferences,
-        darkMode: profile.preferences.darkMode, // Preserve the current darkMode
-      },
-    });
+    setProfile(editedProfile);
     onBack();
   };
 
@@ -54,7 +47,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBa
     }));
   };
 
-  const handlePreferenceChange = (preference: keyof UserProfile['preferences'], value: boolean) => {
+  const handlePreferenceChange = (preference: keyof UserProfile['preferences'], value: any) => {
     setEditedProfile((prev) => ({
       ...prev,
       preferences: {
@@ -63,16 +56,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBa
       },
     }));
 
-    if (preference === 'darkMode') {
-      toggleTheme();
-      // Immediately update parent profile to save to AsyncStorage
-      setProfile({
-        ...profile,
-        preferences: {
-          ...profile.preferences,
-          darkMode: value,
-        },
-      });
+    if (preference === 'themeMode') {
+      setThemeMode(value);
     }
   };
 
@@ -88,7 +73,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBa
       paddingTop: Platform.OS === 'android' ? STATUS_BAR_HEIGHT + 16 : STATUS_BAR_HEIGHT + 16,
       backgroundColor: theme.headerBackground,
       borderBottomWidth: 1,
-      borderBottomColor: isDarkMode ? '#333333' : '#E0E0E0',
+      borderBottomColor: themeMode === 'dark' || (themeMode === 'auto' && theme === darkTheme) ? '#333333' : '#E0E0E0',
     },
     backButton: {
       paddingRight: 16,
@@ -129,7 +114,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBa
       color: theme.textSecondary,
     },
     input: {
-      backgroundColor: isDarkMode ? '#333333' : '#F5F5F7',
+      backgroundColor: themeMode === 'dark' || (themeMode === 'auto' && theme === darkTheme) ? '#333333' : '#F5F5F7',
       borderRadius: 8,
       padding: 12,
       fontSize: 16,
@@ -141,11 +126,37 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBa
       alignItems: 'center',
       paddingVertical: 12,
       borderBottomWidth: 1,
-      borderBottomColor: isDarkMode ? '#333333' : '#E0E0E0',
+      borderBottomColor: themeMode === 'dark' || (themeMode === 'auto' && theme === darkTheme) ? '#333333' : '#E0E0E0',
     },
     preferencesLabel: {
       fontSize: 16,
       color: theme.text,
+    },
+    themeToggleContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+    },
+    themeButton: {
+      flex: 1,
+      padding: 10,
+      marginHorizontal: 4,
+      borderRadius: 8,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.accent,
+    },
+    themeButtonSelected: {
+      backgroundColor: theme.primary,
+      borderColor: theme.primary,
+    },
+    themeButtonText: {
+      fontSize: 14,
+      color: theme.text,
+    },
+    themeButtonTextSelected: {
+      color: '#FFFFFF',
+      fontWeight: '600',
     },
     saveButton: {
       backgroundColor: theme.primary,
@@ -182,7 +193,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBa
                 value={editedProfile.name}
                 onChangeText={(text) => handleInputChange('name', text)}
                 placeholder="Your name"
-                placeholderTextColor={isDarkMode ? '#999999' : '#888888'}
+                placeholderTextColor={themeMode === 'dark' || (themeMode === 'auto' && theme === darkTheme) ? '#999999' : '#888888'}
               />
             </View>
             <View style={dynamicStyles.inputContainer}>
@@ -192,7 +203,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBa
                 value={editedProfile.email}
                 onChangeText={(text) => handleInputChange('email', text)}
                 placeholder="Your email"
-                placeholderTextColor={isDarkMode ? '#999999' : '#888888'}
+                placeholderTextColor={themeMode === 'dark' || (themeMode === 'auto' && theme === darkTheme) ? '#999999' : '#888888'}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -207,7 +218,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBa
                 value={editedProfile.major}
                 onChangeText={(text) => handleInputChange('major', text)}
                 placeholder="Your major"
-                placeholderTextColor={isDarkMode ? '#999999' : '#888888'}
+                placeholderTextColor={themeMode === 'dark' || (themeMode === 'auto' && theme === darkTheme) ? '#999999' : '#888888'}
               />
             </View>
             <View style={dynamicStyles.inputContainer}>
@@ -217,7 +228,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBa
                 value={editedProfile.year}
                 onChangeText={(text) => handleInputChange('year', text)}
                 placeholder="Your year"
-                placeholderTextColor={isDarkMode ? '#999999' : '#888888'}
+                placeholderTextColor={themeMode === 'dark' || (themeMode === 'auto' && theme === darkTheme) ? '#999999' : '#888888'}
               />
             </View>
           </View>
@@ -232,14 +243,55 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBa
                 thumbColor={editedProfile.preferences.notifications ? theme.primary : '#f4f3f4'}
               />
             </View>
-            <View style={[dynamicStyles.preferencesItem, styles.lastPreferenceItem]}>
-              <Text style={dynamicStyles.preferencesLabel}>Dark Mode</Text>
-              <Switch
-                value={editedProfile.preferences.darkMode}
-                onValueChange={(value) => handlePreferenceChange('darkMode', value)}
-                trackColor={{ false: '#767577', true: theme.accent }}
-                thumbColor={editedProfile.preferences.darkMode ? theme.primary : '#f4f3f4'}
-              />
+            <View style={dynamicStyles.themeToggleContainer}>
+              <TouchableOpacity
+                style={[
+                  dynamicStyles.themeButton,
+                  editedProfile.preferences.themeMode === 'light' && dynamicStyles.themeButtonSelected,
+                ]}
+                onPress={() => handlePreferenceChange('themeMode', 'light')}
+              >
+                <Text
+                  style={[
+                    dynamicStyles.themeButtonText,
+                    editedProfile.preferences.themeMode === 'light' && dynamicStyles.themeButtonTextSelected,
+                  ]}
+                >
+                  Light
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  dynamicStyles.themeButton,
+                  editedProfile.preferences.themeMode === 'dark' && dynamicStyles.themeButtonSelected,
+                ]}
+                onPress={() => handlePreferenceChange('themeMode', 'dark')}
+              >
+                <Text
+                  style={[
+                    dynamicStyles.themeButtonText,
+                    editedProfile.preferences.themeMode === 'dark' && dynamicStyles.themeButtonTextSelected,
+                  ]}
+                >
+                  Dark
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  dynamicStyles.themeButton,
+                  editedProfile.preferences.themeMode === 'auto' && dynamicStyles.themeButtonSelected,
+                ]}
+                onPress={() => handlePreferenceChange('themeMode', 'auto')}
+              >
+                <Text
+                  style={[
+                    dynamicStyles.themeButtonText,
+                    editedProfile.preferences.themeMode === 'auto' && dynamicStyles.themeButtonTextSelected,
+                  ]}
+                >
+                  Auto
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
           <TouchableOpacity style={dynamicStyles.saveButton} onPress={handleSave}>
@@ -255,9 +307,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingTop: 24,
     paddingBottom: 40,
-  },
-  lastPreferenceItem: {
-    borderBottomWidth: 0,
   },
 });
 
