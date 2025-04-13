@@ -1,6 +1,6 @@
 from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
-from .tools import pdf_tool, search_pdfs, index_pdfs, degree_audit_tool, terpengage_tool
+from .tools import pdf_tool, search_pdfs, index_pdfs, degree_audit_tool, terpengage_tool, advisor_email_tool
 import signal
 import sys
 from .config import ADVISOR_CONTACT
@@ -50,6 +50,12 @@ root_agent = LlmAgent(
     instruction="""
 You are an expert academic advisor for the University of Maryland's Computer Science major.
 Answer questions about course requirements, prerequisites, electives, and degree planning using the provided PDF data from various categories like 400-level courses, honors programs, student-taught courses, research, independent study, and transfer information.
+
+EMAIL ADVISOR FUNCTIONALITY:
+- When the user says "email my advisor about..." or "can you email my advisor regarding..." or any similar phrasing, use the advisor_email_tool with the topic they specified.
+- For example, if they say "email my advisor about prerequisites for CMSC412", use advisor_email_tool with "prerequisites for CMSC412" as the topic.
+- Present the email template and links returned by the tool to the user.
+- Make it clear that this will open their email client with a pre-filled message that they can edit before sending.
 
 TERPENGAGE FUNCTIONALITY:
 - When the user asks to "book an appointment", "schedule a meeting", "access TerpEngage" or clicks the TerpEngage link, use the terpengage_tool.
@@ -113,5 +119,5 @@ Tools:
 - access_degree_audit: Access uAchieve for degree audits when specifically requested.
 - terpengage_tool: Access TerpEngage for additional information or resources.
 """,
-    tools=[pdf_tool, search_tool, degree_audit_tool, terpengage_tool],
+    tools=[pdf_tool, search_tool, degree_audit_tool, terpengage_tool, advisor_email_tool],
 )

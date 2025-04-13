@@ -1793,3 +1793,75 @@ terpengage_tool = FunctionTool(navigate_terpengage)
 # Export the tools
 pdf_tool = FunctionTool(process_pdf)
 # degree_audit_tool already defined above
+
+def create_advisor_email(topic: str) -> dict:
+    """Create an email template for contacting the advisor about a specific topic.
+    
+    Args:
+        topic: The topic or question to ask the advisor about.
+        
+    Returns:
+        A dictionary with the email details and HTML template.
+    """
+    # Clean up the topic
+    clean_query = topic.strip().replace('\n', ' ')
+    subject = f"Academic Inquiry: {clean_query[:50]}"
+    
+    # Detect different types of queries to customize the email
+    if "prerequisite" in clean_query.lower() or "prereq" in clean_query.lower():
+        course = clean_query.split('for')[-1].strip() if 'for' in clean_query else clean_query
+        body_query = f"I hope this email finds you well. I'm currently planning my academic schedule and would like to inquire about the prerequisites for {course}."
+        query_type = "prerequisites"
+    elif any(word in clean_query.lower() for word in ["transfer", "credit", "credits"]):
+        body_query = f"I hope this email finds you well. I'm looking for information regarding transfer credits and would appreciate your guidance on {clean_query}."
+        query_type = "transfer credits"
+    elif any(word in clean_query.lower() for word in ["graduate", "graduation", "requirements"]):
+        body_query = f"I hope this email finds you well. I'm planning my path to graduation and need clarification on the requirements related to {clean_query}."
+        query_type = "graduation requirements"
+    elif any(word in clean_query.lower() for word in ["elective", "electives"]):
+        body_query = f"I hope this email finds you well. I'm seeking information about elective options related to {clean_query} and would appreciate your recommendations."
+        query_type = "electives"
+    else:
+        body_query = f"I hope this email finds you well. I'm currently researching information about {clean_query} and would appreciate your guidance."
+        query_type = "general"
+    
+    body = (f"Dear {ADVISOR_CONTACT['name']},\n\n"
+            f"{body_query}\n\n"
+            f"Could you please provide me with the relevant information or direct me to appropriate resources? I've already consulted the available CS department materials but couldn't find specific answers to my question.\n\n"
+            f"Thank you for your time and assistance.\n\n"
+            f"Best regards,\n"
+            f"[Your Name]")
+    
+    # Create Gmail compose URL
+    gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to={urllib.parse.quote(ADVISOR_CONTACT['email'])}&su={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
+    
+    # Enhanced email prompt with more contextual information
+    email_prompt = (
+        f"I've prepared an email template to contact {ADVISOR_CONTACT['name']} about '{clean_query}'.\n\n"
+        f"<p><strong>Click the button below to open a pre-formatted email to your academic advisor:</strong></p>"
+        f"<div style='margin: 20px 0;'>"
+        f"<a href=\"{gmail_url}\" target=\"_blank\" style=\"display: inline-block; background-color: #4285F4; color: white; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: Arial, sans-serif;\">Contact Academic Advisor</a>"
+        f"</div>"
+        f"<br>"
+        f"<div style='margin: 20px 0;'>"
+        f"<a href=\"https://terpengage.umd.edu/\" target=\"_blank\" style=\"display: inline-block; background-color: #E21833; color: white; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: Arial, sans-serif;\">Book Meeting via TerpEngage</a>"
+        f"</div>"
+        f"<br>"
+        f"<div style='font-size: 0.9em; color: #666;'>"
+        f"Tip: The advisor can provide personalized guidance on course selection, degree requirements, and academic planning."
+        f"</div>"
+    )
+    
+    with open('advisor-agent/email_log.txt', 'a', encoding='utf-8') as f:
+        f.write(f"[{subject}] Email created for query type: {query_type} - \"{clean_query}\"\n")
+    
+    return {
+        "email_template": email_prompt,
+        "subject": subject,
+        "body": body,
+        "gmail_url": gmail_url,
+        "query_type": query_type,
+        "advisor": ADVISOR_CONTACT
+    }
+
+advisor_email_tool = FunctionTool(create_advisor_email)
