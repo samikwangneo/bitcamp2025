@@ -5,3 +5,5 @@
 [Academic Inquiry: CMSC999] Email prompted for query type: general - "CMSC999"
 [Academic Inquiry: CMSC999] Email prompted for query type: general - "CMSC999"
 [Academic Inquiry: CMSC999] Email prompted for query type: general - "CMSC999"
+[Academic Inquiry: CMSC999] Email prompted for query type: general - "CMSC999"
+[Academic Inquiry: CMSC888] Email prompted for query type: general - "CMSC888"
