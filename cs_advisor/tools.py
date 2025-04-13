@@ -214,7 +214,7 @@ def search_pdfs(query: str, pdf_data: list) -> list:
             f"</div>"
         )
         
-        with open('advisor-agent/email_log.txt', 'a', encoding='utf-8') as f:
+        with open('cs_advisor/email_log.txt', 'a', encoding='utf-8') as f:
             f.write(f"[{subject}] Email prompted for query type: {query_type} - \"{clean_query}\"\n")
         
         return ["no_results", email_prompt]
@@ -1852,7 +1852,7 @@ def create_advisor_email(topic: str) -> dict:
         f"</div>"
     )
     
-    with open('advisor-agent/email_log.txt', 'a', encoding='utf-8') as f:
+    with open('cs_advisor/email_log.txt', 'a', encoding='utf-8') as f:
         f.write(f"[{subject}] Email created for query type: {query_type} - \"{clean_query}\"\n")
     
     return {

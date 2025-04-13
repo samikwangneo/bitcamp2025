@@ -19,7 +19,7 @@ pdf_data = index_pdfs()
 
 print(f"Loaded {len(pdf_data)} PDFs:")
 # Write PDF contents to a file instead of printing to console
-with open('advisor-agent/pdf_contents.txt', 'w', encoding='utf-8') as f:
+with open('cs_advisor/pdf_contents.txt', 'w', encoding='utf-8') as f:
     f.write(f"Total PDFs loaded: {len(pdf_data)}\n\n")
     for doc in pdf_data:
         print(f"- {doc['filename']} ({doc['subtopic']})", flush=True)
@@ -30,7 +30,7 @@ with open('advisor-agent/pdf_contents.txt', 'w', encoding='utf-8') as f:
         f.write(doc['text'])
         f.write("\n\n")
 
-print(f"PDF contents written to 'advisor-agent/pdf_contents.txt'")
+print(f"PDF contents written to 'cs_advisor/pdf_contents.txt'")
 
 # Create a wrapper function that includes pdf_data
 def search_wrapper(query: str) -> str:
