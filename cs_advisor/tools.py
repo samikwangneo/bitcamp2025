@@ -235,7 +235,7 @@ async def _run_degree_audit(credentials):
         # Create a non-persistent browser instance and context (no storage between sessions)
         # Set viewport size and additional parameters for headless mode
         _browser = await playwright.chromium.launch(
-            headless=True,  # Run in headless mode
+            headless=False,  # Run in headless mode
             args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']  # Common headless fixes
         )
         _browser_context = await _browser.new_context(
@@ -669,7 +669,7 @@ async def _run_degree_audit(credentials):
                                     const titleCell = cells[2];
                                     const titleText = titleCell.textContent.trim();
                                     
-                                    if (titleText === 'Computer Science') {
+                                    if (titleText.includes('Computer Science')) {
                                         console.log(`Found Computer Science row: ${titleText}`);
                                         
                                         // Find the View Audit link in the last column (index 8)
@@ -979,6 +979,11 @@ def access_degree_audit(credentials: dict = {}) -> dict:
     global _last_audit_status
     
     try:
+        # Check if this is a mobile client request
+        is_mobile = False
+        if isinstance(credentials, dict) and credentials.get("mobile") is not None:
+            is_mobile = credentials.pop("mobile", False)
+        
         # If we previously had a successful login and now get an empty credentials request,
         # return the last status instead of asking for credentials again
         if (not credentials or credentials == {}) and _last_audit_status and _last_audit_status.get("status") in [
@@ -987,7 +992,7 @@ def access_degree_audit(credentials: dict = {}) -> dict:
             "run_declared_clicked", "run_declared_clicked_no_nav"
         ]:
             print("DEBUG: Returning previous successful status instead of requesting credentials again")
-            return _last_audit_status
+            return include_pdf_data(_last_audit_status, is_mobile)
         
         # Convert string credentials to dict if provided in that format
         if isinstance(credentials, str) and ":" in credentials:
@@ -1107,54 +1112,9 @@ def access_degree_audit(credentials: dict = {}) -> dict:
                 else:
                     print("DEBUG: Skipping final screenshot for continue_clicked status to avoid navigation")
             
-            # Check if we have a 'printer_friendly_downloaded' status, and if so, read the file contents
-            if result.get("status") == "printer_friendly_downloaded":
-                # Add PDF file info if available
-                pdf_path = result.get("pdf_path")
-                if pdf_path and os.path.exists(pdf_path):
-                    # Get file size
-                    pdf_size = os.path.getsize(pdf_path)
-                    pdf_size_kb = pdf_size / 1024
-                    result["pdf_size"] = pdf_size
-                    result["pdf_size_formatted"] = f"{pdf_size_kb:.1f} KB"
-                    print(f"DEBUG: Found PDF file {pdf_path} ({pdf_size_kb:.1f} KB)")
-                    
-                    # Include file metadata
-                    result["pdf_filename"] = os.path.basename(pdf_path)
-                    result["pdf_path"] = os.path.abspath(pdf_path)
-                    result["pdf_created"] = True
-                    
-                    # Optionally add base64 encoded PDF for direct download
-                    # Only do this for small files (<1MB) to avoid performance issues
-                    if pdf_size < 1000000:  # less than 1MB
-                        try:
-                            import base64
-                            with open(pdf_path, "rb") as pdf_file:
-                                pdf_data = pdf_file.read()
-                                # Convert binary data to base64 string
-                                pdf_base64 = base64.b64encode(pdf_data).decode('utf-8')
-                                result["pdf_data"] = pdf_base64
-                                print(f"DEBUG: Successfully encoded PDF as base64 ({len(pdf_base64)} chars)")
-                        except Exception as pdf_e:
-                            print(f"DEBUG: Failed to encode PDF as base64: {str(pdf_e)}")
-                else:
-                    result["pdf_created"] = False
-                    print("DEBUG: PDF file not found or not created")
-                
-                # Add text content if available
-                text_path = result.get("text_path")
-                if text_path and os.path.exists(text_path):
-                    try:
-                        with open(text_path, "r", encoding="utf-8") as f:
-                            audit_content = f.read()
-                            # Include the content in the result
-                            result["audit_content"] = audit_content
-                            print(f"DEBUG: Successfully read audit content from {text_path} ({len(audit_content)} characters)")
-                    except Exception as file_e:
-                        print(f"DEBUG: Error reading audit file: {str(file_e)}")
+            # Process the result to include PDF data if needed
+            return include_pdf_data(result, is_mobile)
             
-            # Just return the result directly
-            return result
         except RuntimeError as e:
             print(f"DEBUG: RuntimeError: {str(e)}")
             # If we get here, it means we couldn't get or run in the current loop
@@ -1789,6 +1749,38 @@ def navigate_terpengage(credentials: dict = {}, advisor_preference: str = "") ->
         }
 
 terpengage_tool = FunctionTool(navigate_terpengage)
+
+# Check if result has a 'printer_friendly_downloaded' status, and return PDF data
+def include_pdf_data(result, is_mobile=True):
+    """Include the PDF data in the result for mobile clients."""
+    if not result or not isinstance(result, dict):
+        return result
+        
+    # Check if we have a 'printer_friendly_downloaded' status with a PDF file
+    if result.get("status") == "printer_friendly_downloaded" and result.get("pdf_path"):
+        pdf_path = result.get("pdf_path")
+        if os.path.exists(pdf_path):
+            # For mobile clients, we want to include the PDF data as base64
+            if is_mobile:
+                try:
+                    import base64
+                    with open(pdf_path, "rb") as pdf_file:
+                        pdf_data = pdf_file.read()
+                        # Convert binary data to base64 string
+                        pdf_base64 = base64.b64encode(pdf_data).decode('utf-8')
+                        result["pdf_data"] = pdf_base64
+                        # Add metadata 
+                        result["pdf_filename"] = os.path.basename(pdf_path)
+                        result["pdf_size"] = os.path.getsize(pdf_path)
+                        print(f"DEBUG: Successfully encoded PDF as base64 ({len(pdf_base64)} chars)")
+                except Exception as pdf_e:
+                    print(f"DEBUG: Failed to encode PDF as base64: {str(pdf_e)}")
+                    result["pdf_encoded"] = False
+            
+            # Add a message about the PDF for clients
+            result["message"] = f"Successfully downloaded your degree audit as a PDF. " + result.get("message", "")
+        
+    return result
 
 # Export the tools
 pdf_tool = FunctionTool(process_pdf)

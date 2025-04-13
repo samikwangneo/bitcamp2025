@@ -16,65 +16,6 @@ interface EmailHandlerProps {
 export const EmailHandler: React.FC<EmailHandlerProps> = ({ text }) => {
   // Extract email information from text content
   const parseContent = (content: string) => {
-    // Helper to clean HTML from text
-    const stripHtml = (html: string) => {
-      // First remove HTML tags
-      const withoutTags = html
-        .replace(/<[^>]*>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-
-      // Then decode common HTML entities
-      return withoutTags
-        .replace(/&nbsp;/g, " ")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&quot;/g, '"')
-        .replace(/&apos;/g, "'")
-        .replace(/&amp;/g, "&");
-    };
-
-    // Function to extract and clean up an advisory message with button instruction
-    const extractMessageWithButtonInstruction = (text: string) => {
-      // Find common phrases that indicate an advisory message
-      const phrases = [
-        "Click the button below",
-        "tap the button below",
-        "click below",
-        "use the button below",
-        "contact academic advisor",
-        "contact your advisor",
-      ];
-
-      // Try to extract the clean message text
-      let cleanedText = text;
-
-      // Remove all URL links
-      cleanedText = cleanedText.replace(/https?:\/\/[^\s]+/g, "");
-
-      // Handle specific case for "Click the button below" message format
-      const buttonInstructionMatch = phrases.some((phrase) =>
-        cleanedText.toLowerCase().includes(phrase.toLowerCase())
-      );
-
-      if (buttonInstructionMatch) {
-        // Try to extract just the instruction part
-        const paragraphs = cleanedText.split(/\n\n+/);
-        const relevantParagraphs = paragraphs.filter((p) =>
-          phrases.some((phrase) =>
-            p.toLowerCase().includes(phrase.toLowerCase())
-          )
-        );
-
-        if (relevantParagraphs.length > 0) {
-          // Join relevant paragraphs that mention the button
-          return relevantParagraphs.join("\n\n");
-        }
-      }
-
-      return cleanedText;
-    };
-
     // First, check if content contains HTML with email links
     if (
       content.includes('<a href="mailto:') ||
@@ -109,25 +50,33 @@ export const EmailHandler: React.FC<EmailHandlerProps> = ({ text }) => {
 
           const subjectMatch =
             content.match(/su=([^"&]+)/i) || content.match(/subject=([^"&]+)/i);
-          if (subjectMatch && subjectMatch[1]) {
+          if (subjectMatch) {
             subject = decodeURIComponent(subjectMatch[1]);
           }
 
           const bodyMatch = content.match(/body=([^"&]+)/i);
-          if (bodyMatch && bodyMatch[1]) {
+          if (bodyMatch) {
             body = decodeURIComponent(bodyMatch[1]);
           }
         }
       }
 
       if (emailAddress) {
-        // Clean the content and extract advisory message
-        const cleanText = stripHtml(content);
-        const messageText = extractMessageWithButtonInstruction(cleanText);
+        // Clean the content by removing HTML tags
+        const cleanText = content
+          .replace(/<[^>]*>/g, " ")
+          .replace(/&nbsp;/g, " ")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&apos;/g, "'")
+          .replace(/&amp;/g, "&")
+          .replace(/\s+/g, " ")
+          .trim();
 
         return (
           <View style={styles.container}>
-            <Text style={styles.messageText}>{messageText}</Text>
+            <Text style={styles.messageText}>{cleanText}</Text>
             <TouchableOpacity
               style={styles.emailButton}
               onPress={() => handleEmailPress(emailAddress, subject, body)}
@@ -140,38 +89,49 @@ export const EmailHandler: React.FC<EmailHandlerProps> = ({ text }) => {
     }
 
     // Check for any URL that might be embedded in the text
-    const gmailRegex = /https?:\/\/mail\.google\.com\/mail\/\?[^\s]*/g;
-    const gmailUrls = content.match(gmailRegex);
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = content.match(urlRegex);
 
-    if (gmailUrls && gmailUrls.length > 0) {
-      // Extract email parameters from the first Gmail URL
-      const gmailUrl = gmailUrls[0];
+    if (urls && urls.length > 0) {
+      // Check if any URL is a Gmail compose URL
+      const gmailUrl = urls.find(
+        (url) =>
+          url.includes("mail.google.com/mail/?view=cm") && url.includes("to=")
+      );
 
-      const emailMatch = gmailUrl.match(/to=([^&]+)/);
-      const subjectMatch =
-        gmailUrl.match(/su=([^&]+)/) || gmailUrl.match(/subject=([^&]+)/);
-      const bodyMatch = gmailUrl.match(/body=([^&]+)/);
+      if (gmailUrl) {
+        try {
+          // Extract email parameters from the URL
+          const emailMatch = gmailUrl.match(/to=([^&]+)/);
+          const subjectMatch =
+            gmailUrl.match(/su=([^&]+)/) || gmailUrl.match(/subject=([^&]+)/);
+          const bodyMatch = gmailUrl.match(/body=([^&]+)/);
 
-      const emailAddress = emailMatch ? decodeURIComponent(emailMatch[1]) : "";
-      const subject = subjectMatch ? decodeURIComponent(subjectMatch[1]) : "";
-      const body = bodyMatch ? decodeURIComponent(bodyMatch[1]) : "";
+          const emailAddress = emailMatch
+            ? decodeURIComponent(emailMatch[1])
+            : "";
+          const subject = subjectMatch
+            ? decodeURIComponent(subjectMatch[1])
+            : "";
+          const body = bodyMatch ? decodeURIComponent(bodyMatch[1]) : "";
 
-      if (emailAddress) {
-        // Remove all URLs from the displayed text
-        const cleanText = content.replace(/https?:\/\/[^\s]+/g, "");
-        const messageText = extractMessageWithButtonInstruction(cleanText);
+          // Remove the Gmail URL from the displayed text
+          const cleanText = content.replace(gmailUrl, "").trim();
 
-        return (
-          <View style={styles.container}>
-            <Text style={styles.messageText}>{messageText}</Text>
-            <TouchableOpacity
-              style={styles.emailButton}
-              onPress={() => handleEmailPress(emailAddress, subject, body)}
-            >
-              <Text style={styles.buttonText}>Contact Academic Advisor</Text>
-            </TouchableOpacity>
-          </View>
-        );
+          return (
+            <View style={styles.container}>
+              <Text style={styles.messageText}>{cleanText}</Text>
+              <TouchableOpacity
+                style={styles.emailButton}
+                onPress={() => handleEmailPress(emailAddress, subject, body)}
+              >
+                <Text style={styles.buttonText}>Contact Academic Advisor</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        } catch (error) {
+          console.error("Error parsing Gmail URL:", error);
+        }
       }
     }
 
@@ -225,7 +185,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     color: "#333",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   emailButton: {
     backgroundColor: "#4285F4",
