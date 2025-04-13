@@ -16,8 +16,8 @@ import {
   Keyboard,
   Alert,
 } from 'react-native';
-import 'react-native-get-random-values'; // Import for uuid
-import { v4 as uuidv4 } from 'uuid'; // Import uuid
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 import ProfileScreen from './profile';
 import { ThemeProvider, useTheme } from './themeContext';
 
@@ -49,14 +49,9 @@ type UserProfile = {
   };
 };
 
-// --- ADK API Configuration ---
-// TODO: Replace localhost with your machine's IP if testing on a physical device
-// const ADK_API_URL = 'http://localhost:8000/run';
-// const ADK_BASE_URL = 'http://localhost:8000';
-const ADK_API_URL = 'https://ec0d-206-139-64-98.ngrok-free.app/run'; // URL for sending messages
-const ADK_BASE_URL = 'https://ec0d-206-139-64-98.ngrok-free.app'; // Base URL for other endpoints
-const ADK_APP_NAME = 'cs_advisor'; // MUST match the agent's AUTHOR field in responses
-// --- End ADK API Configuration ---
+const ADK_API_URL = 'https://7a27-206-139-64-98.ngrok-free.app/run';
+const ADK_BASE_URL = 'https://7a27-206-139-64-98.ngrok-free.app';
+const ADK_APP_NAME = 'cs_advisor';
 
 const AdvisorAI = () => {
   const [userProfile, setUserProfile] = useState<UserProfile>({
@@ -85,19 +80,18 @@ const AdvisorAI = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [showProfileScreen, setShowProfileScreen] = useState<boolean>(false);
   const [isTyping, setIsTyping] = useState<boolean>(false);
-  const [userId, setUserId] = useState<string | null>(null); // Add userId state
+  const [userId, setUserId] = useState<string | null>(null);
 
   const sidebarAnimation = useRef(new Animated.Value(0)).current;
   const categoriesAnimation = useRef(new Animated.Value(1)).current;
 
   const CHAT_SESSIONS_KEY = '@AdvisorAI:chatSessions';
   const USER_PROFILE_KEY = '@AdvisorAI:userProfile';
-  const USER_ID_KEY = '@AdvisorAI:userId'; // Key for storing userId
+  const USER_ID_KEY = '@AdvisorAI:userId';
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load or generate User ID
         let storedUserId = await AsyncStorage.getItem(USER_ID_KEY);
         if (!storedUserId) {
           storedUserId = uuidv4();
@@ -112,7 +106,6 @@ const AdvisorAI = () => {
         }
         setUserId(storedUserId);
 
-        // Load Profile
         const profileJson = await AsyncStorage.getItem(USER_PROFILE_KEY);
         if (profileJson) {
           const parsedProfile = JSON.parse(profileJson);
@@ -227,14 +220,12 @@ const AdvisorAI = () => {
     { name: 'Deadlines', icon: '📅' },
   ];
 
-  // --- Helper function to PRE-REGISTER an ADK session ---
   const createAdkSession = async (userId: string, sessionId: string): Promise<boolean> => {
     if (!userId || !sessionId) {
       console.error('User ID or Session ID missing, cannot create session');
       return false;
     }
 
-    // Endpoint format from docs: POST /apps/{app_name}/users/{user_id}/sessions/{session_id}
     const sessionUrl = `${ADK_BASE_URL}/apps/${ADK_APP_NAME}/users/${userId}/sessions/${sessionId}`;
 
     try {
@@ -245,8 +236,7 @@ const AdvisorAI = () => {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        // Body might need to contain initial state, sending empty for now as per docs example
-        body: JSON.stringify({}), // Or potentially { "state": {} }
+        body: JSON.stringify({}),
       });
 
       console.log('Create Session API Response Status:', response.status);
@@ -254,10 +244,9 @@ const AdvisorAI = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Create Session API Error Response Text:', errorText);
-        // Handle specific error if session already exists (maybe due to retry?)
         if (response.status === 400 && errorText.toLowerCase().includes('session already exists')) {
           console.warn(`Session ${sessionId} already exists on the server. Proceeding...`);
-          return true; // Consider it success if it already exists
+          return true;
         }
         Alert.alert('API Error', `Failed to create/register chat session: ${response.status} - ${errorText}`);
         return false;
@@ -266,30 +255,26 @@ const AdvisorAI = () => {
       const responseData = await response.json();
       console.log('Create Session API Response Data:', JSON.stringify(responseData, null, 2));
 
-      // Check if the response contains the expected session ID (confirmation)
       if (!responseData || responseData.id !== sessionId) {
         console.warn('Session creation response did not match expected ID. Response:', responseData);
-        // Assuming success if status was 200 OK, even if response is slightly different
       }
 
-      return true; // Session created or already existed
+      return true;
 
     } catch (error: any) {
       console.error('Error creating ADK session:', error);
       if (error.message?.toLowerCase().includes('network request failed')) {
-           Alert.alert(
-              'Network Error', 
-              'Could not connect to the AdvisorAI backend to create a session. Please ensure the backend server is running and reachable.'
-          );
+        Alert.alert(
+          'Network Error',
+          'Could not connect to the AdvisorAI backend to create a session. Please ensure the backend server is running and reachable.'
+        );
       } else {
-          Alert.alert('Error', `An error occurred while creating a chat session: ${error.message}`);
+        Alert.alert('Error', `An error occurred while creating a chat session: ${error.message}`);
       }
       return false;
     }
   };
-  // --- End Create Session Helper ---
 
-  // --- Helper function to send message to ADK API (/run endpoint) ---
   const sendMessageToAdk = async (userId: string, sessionId: string, textInput: string): Promise<string | null> => {
     if (!userId || !sessionId) {
       console.error('User ID or Session ID missing, cannot send message');
@@ -299,7 +284,7 @@ const AdvisorAI = () => {
     const requestBody = {
       app_name: ADK_APP_NAME,
       user_id: userId,
-      session_id: sessionId, // Use the provided sessionId
+      session_id: sessionId,
       new_message: {
         role: "user",
         parts: [{ text: textInput }],
@@ -329,128 +314,165 @@ const AdvisorAI = () => {
       const responseData = await response.json();
       console.log('Send Message API Response Data:', JSON.stringify(responseData, null, 2));
 
-      // --- CORRECTED RESPONSE PARSING ---
       let aiText: string | null = null;
       if (Array.isArray(responseData)) {
-        // Find the first event from the agent with text content
-        console.log(`[DEBUG] Searching for event author: ${ADK_APP_NAME}`); // Log expected author
+        console.log(`[DEBUG] Searching for event author: ${ADK_APP_NAME}`);
         const agentEvent = responseData.find((event, index) => {
-            console.log(`[DEBUG] Checking event[${index}].author: ${event.author}`); // Log current author
-            const authorMatch = event.author === ADK_APP_NAME;
-            const textExists = event.content?.parts?.[0]?.text;
-            console.log(`[DEBUG] Event[${index}] - Author Match: ${authorMatch}, Text Exists: ${!!textExists}`); // Log comparison results
-            // Log text content if it exists, even if author doesn't match, for debugging
-            if (textExists) {
-                 console.log(`[DEBUG] Event[${index}] - Text Content: ${event.content.parts[0].text.substring(0, 50)}...`);
-            }
-            return authorMatch && !!textExists;
+          console.log(`[DEBUG] Checking event[${index}].author: ${event.author}`);
+          const authorMatch = event.author === ADK_APP_NAME;
+          const textExists = event.content?.parts?.[0]?.text;
+          console.log(`[DEBUG] Event[${index}] - Author Match: ${authorMatch}, Text Exists: ${!!textExists}`);
+          if (textExists) {
+            console.log(`[DEBUG] Event[${index}] - Text Content: ${event.content.parts[0].text.substring(0, 50)}...`);
           }
-        );
-        console.log('[DEBUG] Found agentEvent:', agentEvent ? JSON.stringify(agentEvent) : 'null'); // Log the found event
+          return authorMatch && !!textExists;
+        });
+        console.log('[DEBUG] Found agentEvent:', agentEvent ? JSON.stringify(agentEvent) : 'null');
 
         if (agentEvent) {
           aiText = agentEvent.content.parts[0].text;
         }
       }
-      // --- END CORRECTION ---
 
-      // Handle case where no suitable text was found in the response array
       if (!aiText) {
-          console.warn('Could not extract AI text from response events:', responseData);
-          // Return null to indicate failure to parse, even if API status was 200
-          // Alerting the user might be too noisy here, let the caller decide.
-          return null;
+        console.warn('Could not extract AI text from response events:', responseData);
+        return null;
       }
 
-      console.log('[DEBUG] Final extracted aiText:', aiText); // Log final text
-
+      console.log('[DEBUG] Final extracted aiText:', aiText);
       return aiText;
 
     } catch (error: any) {
       console.error('Error sending message to ADK API:', error);
       if (error.message?.toLowerCase().includes('network request failed')) {
-           Alert.alert(
-              'Network Error', 
-              'Could not connect to the AdvisorAI backend to send a message. Please ensure the backend server is running and reachable.'
-          );
+        Alert.alert(
+          'Network Error',
+          'Could not connect to the AdvisorAI backend to send a message. Please ensure the backend server is running and reachable.'
+        );
       } else {
-          Alert.alert('Error', `An error occurred while sending a message: ${error.message}`);
+        Alert.alert('Error', `An error occurred while sending a message: ${error.message}`);
       }
       return null;
     }
   };
-  // --- End Send Message Helper ---
 
   const getCategoryResponse = async (category: string) => {
     if (!userId) {
-        Alert.alert("Error", "User not initialized. Cannot send message.");
-        return;
+      Alert.alert("Error", "User not initialized. Cannot send message.");
+      return;
     }
+  
+    const userText = `Tell me about ${category}`;
     setIsLoading(true);
     Keyboard.dismiss();
-
-    setTimeout(() => {
-      let response = '';
-      switch (category) {
-        case 'Courses':
-          response = "I can help you find course information. Ask me about specific courses, prerequisites, or course recommendations based on your interests.";
-          break;
-        case 'Minors':
-          response = "I can provide information about available minors, requirements, and how they complement your major.";
-          break;
-        case 'ULCs':
-          response = "I have information about Upper Level Courses, their prerequisites, and which ones fulfill specific graduation requirements.";
-          break;
-        case 'CS Tracks':
-          response = "I can explain the different CS specialization tracks available, their required courses, and career paths they align with.";
-          break;
-        case 'Deadlines':
-          response = "I can inform you about important academic deadlines including registration periods, drop/add deadlines, and application dates.";
-          break;
-        default:
-          response = "I don't have information about that category yet. Please ask me something else.";
+  
+    // Add user's category query to messages
+    const userMessage: Message = {
+      text: userText,
+      sender: 'user',
+      timestamp: new Date(),
+    };
+    setMessages((prevMessages) => [...prevMessages, userMessage]);
+  
+    let effectiveSessionId = currentChatId;
+    const isNewChat = !effectiveSessionId;
+  
+    // 1. Ensure session exists on the backend if it's a new chat
+    if (isNewChat) {
+      const newSessionId = uuidv4();
+      console.log(`Starting new chat for category ${category}, attempting to create session: ${newSessionId}`);
+      const created = await createAdkSession(userId, newSessionId);
+      if (!created) {
+        setIsLoading(false);
+        const errorMessage: Message = {
+          text: "Failed to start a new chat session with the backend. Please try again.",
+          sender: 'ai',
+          timestamp: new Date(),
+        };
+        setMessages((prevMessages) => [...prevMessages, errorMessage]);
+        return;
       }
-      const userMessage: Message = {
-        text: `Tell me about ${category}`,
-        sender: 'user',
-        timestamp: new Date(),
-      };
-      const aiMessage: Message = {
-        text: response,
+      effectiveSessionId = newSessionId;
+      setCurrentChatId(newSessionId);
+    }
+  
+    // Ensure we have a session ID
+    if (!effectiveSessionId) {
+      console.error("Error: Session ID is null even after attempting creation.");
+      setIsLoading(false);
+      const errorMessage: Message = {
+        text: "Internal error: Could not establish a valid chat session ID.",
         sender: 'ai',
         timestamp: new Date(),
       };
-      setMessages((prevMessages) => {
-        const newMessages = [...prevMessages, userMessage, aiMessage];
-        const newSession: ChatSession = {
-          id: Date.now().toString(),
-          title: `Chat about ${category}`,
-          date: new Date(),
-          messages: newMessages,
-        };
-        setChatSessions((prev) => {
-          const updatedSessions = [...prev, newSession];
-          console.log('Updated chatSessions after category:', updatedSessions);
-          return updatedSessions;
-        });
-        setCurrentChatId(newSession.id);
-        return newMessages;
+      setMessages((prevMessages) => [...prevMessages, errorMessage]);
+      return;
+    }
+  
+    // 2. Send the category query to the ADK API
+    const aiResponse = await sendMessageToAdk(userId, effectiveSessionId, userText);
+  
+    // 3. Handle the API response
+    if (aiResponse) {
+      const aiMessage: Message = {
+        text: aiResponse,
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      const finalMessages = [...messages, userMessage, aiMessage];
+      setMessages(finalMessages);
+  
+      // Update or create session history
+      setChatSessions((prevSessions) => {
+        const existingIndex = prevSessions.findIndex((s) => s.id === effectiveSessionId);
+        if (existingIndex > -1) {
+          // Update existing session
+          const updated = [...prevSessions];
+          updated[existingIndex] = { ...updated[existingIndex], messages: finalMessages };
+          return updated;
+        } else if (isNewChat) {
+          // Add new session
+          const newSession: ChatSession = {
+            id: effectiveSessionId,
+            title: `Chat about ${category}`,
+            date: new Date(),
+            messages: finalMessages,
+          };
+          return [...prevSessions, newSession];
+        }
+        console.error("Session ID existed but wasn't found in history array for update.");
+        return prevSessions;
       });
-      setIsLoading(false);
-    }, 1000);
+      setCurrentChatId(effectiveSessionId);
+    } else {
+      // Handle API failure
+      const errorMessage: Message = {
+        text: "Failed to receive a response from the backend. Please try again later.",
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages((prevMessages) => [...prevMessages, errorMessage]);
+    }
+  
+    setIsLoading(false);
   };
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || !userId) {
-        if (!userId) Alert.alert("Error", "User not initialized. Cannot send message.");
-        return;
-    };
+      if (!userId) Alert.alert("Error", "User not initialized. Cannot send message.");
+      return;
+    }
 
     const userText = inputText;
     console.log('User input:', userText);
     Keyboard.dismiss();
 
-    setMessages(prevMessages => [...prevMessages, { text: userText, sender: 'user', timestamp: new Date() }]);
+    const userMessage: Message = {
+      text: userText,
+      sender: 'user',
+      timestamp: new Date(),
+    };
+    setMessages(prevMessages => [...prevMessages, userMessage]);
     setInputText('');
     setIsTyping(false);
     setIsLoading(true);
@@ -458,81 +480,70 @@ const AdvisorAI = () => {
     let effectiveSessionId = currentChatId;
     const isNewChat = !effectiveSessionId;
 
-    // 1. Ensure session exists on the backend if it's a new chat
     if (isNewChat) {
-      const newSessionId = uuidv4(); // Generate ID on frontend
+      const newSessionId = uuidv4();
       console.log(`Starting new chat, attempting to create session: ${newSessionId}`);
       const created = await createAdkSession(userId, newSessionId);
       if (!created) {
         setIsLoading(false);
-        // Error already alerted in createAdkSession
-         const errorMessage: Message = {
-            text: "Failed to start a new chat session with the backend. Please try again.",
-            sender: 'ai',
-            timestamp: new Date(),
+        const errorMessage: Message = {
+          text: "Failed to start a new chat session with the backend. Please try again.",
+          sender: 'ai',
+          timestamp: new Date(),
         };
         setMessages(prevMessages => [...prevMessages, errorMessage]);
         return;
       }
-       // If creation was successful (or session already existed), use this ID
       effectiveSessionId = newSessionId;
-      setCurrentChatId(newSessionId); // Update state immediately
+      setCurrentChatId(newSessionId);
     }
 
-    // Ensure we have a session ID before sending the message
     if (!effectiveSessionId) {
-        console.error("Error: Session ID is null even after attempting creation.");
-        setIsLoading(false);
-        const errorMessage: Message = {
-            text: "Internal error: Could not establish a valid chat session ID.",
-            sender: 'ai',
-            timestamp: new Date(),
-        };
-        setMessages(prevMessages => [...prevMessages, errorMessage]);
-        return;
+      console.error("Error: Session ID is null even after attempting creation.");
+      setIsLoading(false);
+      const errorMessage: Message = {
+        text: "Internal error: Could not establish a valid chat session ID.",
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
+      return;
     }
 
-    // 2. Send the message to the session
     const aiResponse = await sendMessageToAdk(userId, effectiveSessionId, userText);
 
-    // Check if API call was successful
     if (aiResponse) {
-      // Ensure correct types before setting state
       const aiMessage: Message = { text: aiResponse, sender: 'ai', timestamp: new Date() };
-      const finalMessages = [...messages, aiMessage];
+      const finalMessages = [...messages, userMessage, aiMessage];
       setMessages(finalMessages);
 
-      // Update or create session history
       setChatSessions(prevSessions => {
         const existingIndex = prevSessions.findIndex(s => s.id === effectiveSessionId);
         if (existingIndex > -1) {
-            // Update existing session
-            const updated = [...prevSessions];
-            updated[existingIndex] = { ...updated[existingIndex], messages: finalMessages };
-            return updated;
+          const updated = [...prevSessions];
+          updated[existingIndex] = { ...updated[existingIndex], messages: finalMessages };
+          return updated;
         } else if (isNewChat) {
-             // Add new session
-             const newSession: ChatSession = {
-                id: effectiveSessionId,
-                title: userText.slice(0, 20) + (userText.length > 20 ? '...' : ''),
-                date: new Date(),
-                messages: finalMessages
-            };
-            return [...prevSessions, newSession];
+          const newSession: ChatSession = {
+            id: effectiveSessionId,
+            title: userText.slice(0, 20) + (userText.length > 20 ? '...' : ''),
+            date: new Date(),
+            messages: finalMessages
+          };
+          return [...prevSessions, newSession];
         } else {
-            console.error("Session ID existed but wasn't found in history array for update.");
-            return prevSessions; // Should not happen
+          console.error("Session ID existed but wasn't found in history array for update.");
+          return prevSessions;
         }
       });
       setCurrentChatId(effectiveSessionId);
     } else {
-      // If AI response is null, it means the API call failed
       const errorMessage: Message = {
         text: "Failed to receive a response from the backend. Please try again later.",
         sender: 'ai',
         timestamp: new Date(),
       };
-      setMessages(prevMessages => [...prevMessages, errorMessage] as Message[]); // Cast if needed
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
     }
 
     setIsLoading(false);
@@ -972,7 +983,7 @@ const AdvisorAI = () => {
             </TouchableOpacity>
 
             <ScrollView style={styles.chatHistoryList}>
-              {chatSessions.map((session) => (
+              {[...chatSessions].sort((a, b) => b.date.getTime() - a.date.getTime()).map((session) => (
                 <TouchableOpacity
                   key={session.id}
                   style={[
@@ -1028,7 +1039,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    paddingTop: Platform.OS === 'android' ? STATUS_BAR_HEIGHT + 16 : STATUS_BAR_HEIGHT,
+    paddingTop: Platform.OS === 'android' ? STATUS_BAR_HEIGHT : STATUS_BAR_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
   },
