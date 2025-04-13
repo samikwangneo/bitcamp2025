@@ -8,7 +8,7 @@ import {
   Alert,
   Platform,
 } from "react-native";
-import { useTheme } from "/Users/eswarkaravadi/Bitcamp2025/bitcamp2025/frontend/app/(tabs)/themeContext";
+import { useTheme } from "../app/(tabs)/themeContext";
 
 interface EmailHandlerProps {
   text: string;
