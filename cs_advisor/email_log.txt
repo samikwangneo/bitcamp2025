@@ -2,3 +2,5 @@
 [Academic Inquiry: course permissions] Email created for query type: general - "course permissions"
 [Academic Inquiry: ULC] Email created for query type: general - "ULC"
 [Academic Inquiry: ULC] Email created for query type: general - "ULC"
+[Academic Inquiry: ULC] Email created for query type: general - "ULC"
+[Academic Inquiry: ulc] Email prompted for query type: general - "ulc"

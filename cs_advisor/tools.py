@@ -1835,25 +1835,16 @@ def create_advisor_email(topic: str) -> dict:
     # Create Gmail compose URL
     gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to={urllib.parse.quote(ADVISOR_CONTACT['email'])}&su={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
     
-    # Enhanced email prompt with more contextual information
+    # Enhanced email prompt with more contextual information but simplified for mobile
     email_prompt = (
-        f"I've prepared an email template to contact {ADVISOR_CONTACT['name']} about '{clean_query}'.\n\n"
-        f"<p><strong>Click the button below to open a pre-formatted email to your academic advisor:</strong></p>"
-        f"<div style='margin: 20px 0;'>"
-        f"<a href=\"{gmail_url}\" target=\"_blank\" style=\"display: inline-block; background-color: #4285F4; color: white; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: Arial, sans-serif;\">Contact Academic Advisor</a>"
-        f"</div>"
-        f"<br>"
-        f"<div style='margin: 20px 0;'>"
-        f"<a href=\"https://terpengage.umd.edu/\" target=\"_blank\" style=\"display: inline-block; background-color: #E21833; color: white; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: Arial, sans-serif;\">Book Meeting via TerpEngage</a>"
-        f"</div>"
-        f"<br>"
-        f"<div style='font-size: 0.9em; color: #666;'>"
-        f"Tip: The advisor can provide personalized guidance on course selection, degree requirements, and academic planning."
-        f"</div>"
+        f"I couldn't find specific information about '{clean_query}' in our available resources.\n\n"
+        f"For detailed guidance on {query_type}, I recommend contacting {ADVISOR_CONTACT['name']} at {ADVISOR_CONTACT['email']}.\n\n"
+        f"Click the button below to compose an email to your academic advisor about this topic.\n\n"
+        f"{gmail_url}"
     )
     
     with open('cs_advisor/email_log.txt', 'a', encoding='utf-8') as f:
-        f.write(f"[{subject}] Email created for query type: {query_type} - \"{clean_query}\"\n")
+        f.write(f"[{subject}] Email prompted for query type: {query_type} - \"{clean_query}\"\n")
     
     return {
         "email_template": email_prompt,
