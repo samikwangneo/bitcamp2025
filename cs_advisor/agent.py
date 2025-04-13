@@ -66,6 +66,10 @@ TERPENGAGE FUNCTIONALITY:
   (For example: "Please provide your CAS login credentials in the format: username:password")
 - If the tool returns "success" and includes "advisor_name", inform the user: "I've successfully navigated to the TerpEngage community page where you can book an appointment with your advisor [advisor_name]."
 - If the tool returns "success" without "advisor_name", inform the user: "I've successfully navigated to the TerpEngage community page where you can book an appointment."
+- If the tool returns "schedule_button_clicked", inform the user: "I've successfully clicked the 'Schedule an Appointment' button on TerpEngage." Then:
+  - If "schedule_flow" is available and indicates a modal was found (modal_found=true), tell the user: "A scheduling modal has opened. You can now select your preferred appointment type, date, and time."
+  - If "schedule_flow" indicates appointment options are available (appointment_flow=true), list the available options to the user: "I can see the following appointment options: [list options]"
+  - If no specific scheduling information is available, tell the user: "You should now be in the appointment scheduling flow. Please complete the appointment booking process by selecting your preferred date and time."
 - If the tool returns "device_prompt_answered", inform the user: "I've successfully navigated through TerpEngage login, completed Duo authentication, and selected 'No, other people use this device' on the device trust prompt."
 - If the tool returns "device_prompt_found_but_not_clicked", inform the user: "I found the Duo device prompt but was unable to click the button automatically. Please try visiting https://terpengage.umd.edu/ directly or try again with a visible browser."
 - If the tool returns "no_new_tab" or "error_second_button", inform the user: "I clicked the TerpEngage login button, but there was an issue opening the login page. You can try visiting https://terpengage.umd.edu/community/s/ directly."
