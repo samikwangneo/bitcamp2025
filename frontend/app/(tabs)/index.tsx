@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
@@ -13,15 +14,13 @@ import {
   Animated,
   StatusBar,
   Keyboard,
+  Alert,
 } from 'react-native';
-import ProfileScreen from './profile'; // Import ProfileScreen from separate file
-import { ThemeProvider, useTheme } from './themeContext'; // Import from new file
+import ProfileScreen from './profile';
+import { ThemeProvider, useTheme } from './themeContext';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// Default status bar height values
 const STATUS_BAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 24;
-
 const BOTTOM_SAFE_AREA = Platform.OS === 'ios' ? 34 : 0;
 
 type Message = {
@@ -49,7 +48,6 @@ type UserProfile = {
 };
 
 const AdvisorAI = () => {
-  // Default user profile
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: "John Doe",
     email: "john.doe@university.edu",
@@ -58,47 +56,11 @@ const AdvisorAI = () => {
     preferences: {
       notifications: true,
       darkMode: true,
-    }
+    },
   });
 
-  // Access theme context - now using the imported hook
   const { isDarkMode, toggleTheme, theme } = useTheme();
-
-  // Update theme when profile preference changes
-  useEffect(() => {
-    if (isDarkMode !== userProfile.preferences.darkMode) {
-      toggleTheme();
-    }
-  }, []);
-  
-  // Sample previous chat sessions
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([
-    {
-      id: '1',
-      title: 'Course Registration Help',
-      date: new Date(Date.now() - 86400000 * 2), // 2 days ago
-      messages: [
-        {
-          text: "Hello! How can I help with course registration?",
-          sender: 'ai',
-          timestamp: new Date(Date.now() - 86400000 * 2),
-        },
-      ],
-    },
-    {
-      id: '2',
-      title: 'Minor Requirements',
-      date: new Date(Date.now() - 86400000 * 5), // 5 days ago
-      messages: [
-        {
-          text: "Let me tell you about minor requirements",
-          sender: 'ai',
-          timestamp: new Date(Date.now() - 86400000 * 5),
-        },
-      ],
-    },
-  ]);
-
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -112,16 +74,86 @@ const AdvisorAI = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [showProfileScreen, setShowProfileScreen] = useState<boolean>(false);
   const [isTyping, setIsTyping] = useState<boolean>(false);
-  
-  // Animation value for sidebar
+
   const sidebarAnimation = useRef(new Animated.Value(0)).current;
-  // Animation value for categories container
   const categoriesAnimation = useRef(new Animated.Value(1)).current;
 
-  // Check if there are any user messages in the chat
-  const hasUserMessages = messages.some(message => message.sender === 'user');
+  const CHAT_SESSIONS_KEY = '@AdvisorAI:chatSessions';
+  const USER_PROFILE_KEY = '@AdvisorAI:userProfile';
 
-  // Should hide categories if user is typing OR there are user messages
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const profileJson = await AsyncStorage.getItem(USER_PROFILE_KEY);
+        if (profileJson) {
+          const parsedProfile = JSON.parse(profileJson);
+          parsedProfile.preferences.darkMode = parsedProfile.preferences.darkMode ?? true;
+          setUserProfile(parsedProfile);
+          console.log('Loaded user profile:', parsedProfile);
+        } else {
+          console.log('No user profile found in AsyncStorage');
+        }
+
+        const sessionsJson = await AsyncStorage.getItem(CHAT_SESSIONS_KEY);
+        if (sessionsJson) {
+          const parsedSessions = JSON.parse(sessionsJson).map((session: ChatSession) => ({
+            ...session,
+            date: new Date(session.date),
+            messages: session.messages.map((msg: Message) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp),
+            })),
+          }));
+          console.log('Loaded chat sessions from AsyncStorage:', parsedSessions);
+          setChatSessions(parsedSessions);
+        } else {
+          console.log('No chat sessions found in AsyncStorage');
+        }
+      } catch (error) {
+        console.error('Error loading data from AsyncStorage:', error);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    const saveProfile = async () => {
+      try {
+        await AsyncStorage.setItem(USER_PROFILE_KEY, JSON.stringify(userProfile));
+      } catch (error) {
+        console.error('Error saving profile to AsyncStorage:', error);
+      }
+    };
+
+    saveProfile();
+  }, [userProfile]);
+
+  useEffect(() => {
+    if (isDarkMode !== userProfile.preferences.darkMode) {
+      toggleTheme();
+    }
+  }, [userProfile.preferences.darkMode, isDarkMode, toggleTheme]);
+
+  useEffect(() => {
+    const saveChatSessions = async () => {
+      try {
+        console.log('Attempting to save chat sessions:', chatSessions);
+        await AsyncStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(chatSessions));
+        console.log('Successfully saved chat sessions to AsyncStorage');
+      } catch (error) {
+        console.error('Error saving chat sessions to AsyncStorage:', error);
+      }
+    };
+
+    if (chatSessions.length > 0) {
+      saveChatSessions();
+    } else {
+      console.log('No chat sessions to save');
+    }
+  }, [chatSessions]);
+
+  const hasUserMessages = messages.some(message => message.sender === 'user');
   const shouldHideCategories = isTyping || hasUserMessages;
 
   useEffect(() => {
@@ -140,19 +172,8 @@ const AdvisorAI = () => {
     }).start();
   }, [shouldHideCategories]);
 
-  // Update user profile when theme changes
-  useEffect(() => {
-    setUserProfile(prev => ({
-      ...prev,
-      preferences: {
-        ...prev.preferences,
-        darkMode: isDarkMode
-      }
-    }));
-  }, [isDarkMode]);
-
   const sidebarWidth = SCREEN_WIDTH * 0.75;
-  
+
   const sidebarTranslateX = sidebarAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: [-sidebarWidth, 0],
@@ -160,9 +181,9 @@ const AdvisorAI = () => {
 
   const overlayOpacity = sidebarAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 0.5],
+    outputRange: [0, 0],
   });
-  
+
   const categoriesOpacity = categoriesAnimation;
   const categoriesHeight = categoriesAnimation.interpolate({
     inputRange: [0, 1],
@@ -179,9 +200,8 @@ const AdvisorAI = () => {
 
   const getCategoryResponse = (category: string) => {
     setIsLoading(true);
-    // Dismiss keyboard when a category is selected
     Keyboard.dismiss();
-    
+
     setTimeout(() => {
       let response = '';
       switch (category) {
@@ -213,23 +233,64 @@ const AdvisorAI = () => {
         sender: 'ai',
         timestamp: new Date(),
       };
-      setMessages((prevMessages) => [...prevMessages, userMessage, aiMessage]);
+      setMessages((prevMessages) => {
+        const newMessages = [...prevMessages, userMessage, aiMessage];
+        const newSession: ChatSession = {
+          id: Date.now().toString(),
+          title: `Chat about ${category}`,
+          date: new Date(),
+          messages: newMessages,
+        };
+        setChatSessions((prev) => {
+          const updatedSessions = [...prev, newSession];
+          console.log('Updated chatSessions after category:', updatedSessions);
+          return updatedSessions;
+        });
+        setCurrentChatId(newSession.id);
+        return newMessages;
+      });
       setIsLoading(false);
     }, 1000);
   };
 
   const handleSendMessage = () => {
     if (!inputText.trim()) return;
-    
-    // Dismiss keyboard when send button is clicked
+
     Keyboard.dismiss();
-    
+
     const userMessage: Message = {
       text: inputText,
       sender: 'user',
       timestamp: new Date(),
     };
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    setMessages((prevMessages) => {
+      const newMessages = [...prevMessages, userMessage];
+      if (!currentChatId) {
+        const newSession: ChatSession = {
+          id: Date.now().toString(),
+          title: inputText.slice(0, 20) + (inputText.length > 20 ? '...' : ''),
+          date: new Date(),
+          messages: newMessages,
+        };
+        setChatSessions((prev) => {
+          const updatedSessions = [...prev, newSession];
+          console.log('Created new chat session:', updatedSessions);
+          return updatedSessions;
+        });
+        setCurrentChatId(newSession.id);
+      } else {
+        setChatSessions((prev) => {
+          const updatedSessions = prev.map((session) =>
+            session.id === currentChatId
+              ? { ...session, messages: newMessages }
+              : session
+          );
+          console.log('Updated existing chat session:', updatedSessions);
+          return updatedSessions;
+        });
+      }
+      return newMessages;
+    });
     setInputText('');
     setIsTyping(false);
     setIsLoading(true);
@@ -239,9 +300,61 @@ const AdvisorAI = () => {
         sender: 'ai',
         timestamp: new Date(),
       };
-      setMessages((prevMessages) => [...prevMessages, aiMessage]);
+      setMessages((prevMessages) => {
+        const newMessages = [...prevMessages, aiMessage];
+        setChatSessions((prev) => {
+          const updatedSessions = prev.map((session) =>
+            session.id === currentChatId
+              ? { ...session, messages: newMessages }
+              : session
+          );
+          console.log('Updated chat session with AI response:', updatedSessions);
+          return updatedSessions;
+        });
+        return newMessages;
+      });
       setIsLoading(false);
     }, 1000);
+  };
+
+  const deleteChatSession = async (sessionId: string) => {
+    try {
+      const updatedSessions = chatSessions.filter((session) => session.id !== sessionId);
+      setChatSessions(updatedSessions);
+
+      await AsyncStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(updatedSessions));
+
+      if (currentChatId === sessionId) {
+        setMessages([
+          {
+            text: "Hello! I'm AdvisorAI, your personal college advisor. I can help you with information about courses, minors, ULCs, CS tracks, and more. How can I assist you today?",
+            sender: 'ai',
+            timestamp: new Date(),
+          },
+        ]);
+        setCurrentChatId(null);
+      }
+
+      console.log(`Deleted chat session ${sessionId}`);
+    } catch (error) {
+      console.error('Error deleting chat session:', error);
+    }
+  };
+
+  const handleLongPress = (sessionId: string, sessionTitle: string) => {
+    Alert.alert(
+      'Delete Chat',
+      `Are you sure you want to delete "${sessionTitle}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteChatSession(sessionId),
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const handleTextInputChange = (text: string) => {
@@ -258,7 +371,7 @@ const AdvisorAI = () => {
   };
 
   const loadChatSession = (sessionId: string) => {
-    const session = chatSessions.find(s => s.id === sessionId);
+    const session = chatSessions.find((s) => s.id === sessionId);
     if (session) {
       setMessages(session.messages);
       setCurrentChatId(sessionId);
@@ -279,7 +392,6 @@ const AdvisorAI = () => {
   };
 
   const toggleSidebar = () => {
-    // Dismiss keyboard when sidebar is toggled
     Keyboard.dismiss();
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -289,22 +401,17 @@ const AdvisorAI = () => {
     setShowProfileScreen(true);
   };
 
-  // Pass updated theme to ProfileScreen
   if (showProfileScreen) {
     return (
-      <ProfileScreen 
-        profile={userProfile} 
-        setProfile={setUserProfile} 
-        onBack={() => setShowProfileScreen(false)} 
-        isDarkMode={isDarkMode}
-        toggleTheme={toggleTheme}
+      <ProfileScreen
+        profile={userProfile}
+        setProfile={setUserProfile}
+        onBack={() => setShowProfileScreen(false)}
       />
     );
   }
 
-  // Create dynamic styles based on theme
   const dynamicStyles = StyleSheet.create({
-    // ... All your dynamic styles remain the same
     container: {
       flex: 1,
       backgroundColor: theme.background,
@@ -321,7 +428,6 @@ const AdvisorAI = () => {
       elevation: 4,
       position: 'relative',
       backgroundColor: theme.headerBackground,
-      // Add padding for status bar
       paddingTop: Platform.OS === 'android' ? STATUS_BAR_HEIGHT + 16 : 16 + STATUS_BAR_HEIGHT,
     },
     menuIcon: {
@@ -371,11 +477,10 @@ const AdvisorAI = () => {
       lineHeight: 22,
       color: theme.text,
     },
-    // New style for user message text that's always white
     userMessageText: {
       fontSize: 16,
       lineHeight: 22,
-      color: '#FFFFFF', // Always white
+      color: '#FFFFFF',
     },
     timestamp: {
       fontSize: 12,
@@ -385,7 +490,7 @@ const AdvisorAI = () => {
     },
     userTimestamp: {
       fontSize: 12,
-      color: '#FFFFFF', // Always white for user bubble
+      color: '#FFFFFF',
       position: 'absolute',
       right: 12,
       bottom: 4,
@@ -431,7 +536,6 @@ const AdvisorAI = () => {
       shadowRadius: 5,
       display: 'flex',
       flexDirection: 'column',
-      // Add padding for status bar at the top
       paddingTop: STATUS_BAR_HEIGHT,
     },
     overlay: {
@@ -440,7 +544,7 @@ const AdvisorAI = () => {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: theme.overlayColor,
+      backgroundColor: 'transparent',
       zIndex: 99,
     },
     sidebarTitle: {
@@ -499,36 +603,28 @@ const AdvisorAI = () => {
 
   return (
     <View style={dynamicStyles.container}>
-      {/* Set StatusBar based on theme */}
       <StatusBar barStyle={theme.statusBarStyle} translucent backgroundColor="transparent" />
-      
-      {/* Use regular View instead of SafeAreaView with edges */}
       <View style={styles.safeAreaBottom}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoid}
         >
-          {/* Header with centered title - Add paddingTop for status bar */}
           <View style={dynamicStyles.header}>
-            <TouchableOpacity 
-              style={styles.menuButton} 
+            <TouchableOpacity
+              style={styles.menuButton}
               onPress={toggleSidebar}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={dynamicStyles.menuIcon}>☰</Text>
             </TouchableOpacity>
-            
             <View style={styles.headerTitleContainer}>
               <Text style={dynamicStyles.headerTitle}>AdvisorAI</Text>
               <Text style={dynamicStyles.headerSubtitle}>Your College Companion</Text>
             </View>
-            
-            {/* Add an empty View with the same width as the menu button for balance */}
             <View style={styles.menuButton} />
           </View>
 
           <View style={styles.contentContainer}>
-            {/* Chat messages */}
             <ScrollView
               style={styles.messagesContainer}
               contentContainerStyle={styles.messagesContent}
@@ -543,7 +639,6 @@ const AdvisorAI = () => {
                   ]}
                 >
                   {message.sender === 'ai' ? (
-                    // AI message with icon
                     <>
                       <View style={styles.aiIconContainer}>
                         <Text style={styles.aiIcon}>🤖</Text>
@@ -554,7 +649,6 @@ const AdvisorAI = () => {
                       </View>
                     </>
                   ) : (
-                    // User message without the flex container - Now using userMessageText style
                     <>
                       <Text style={dynamicStyles.userMessageText}>{message.text}</Text>
                       <Text style={dynamicStyles.userTimestamp}>{formatTime(message.timestamp)}</Text>
@@ -575,14 +669,13 @@ const AdvisorAI = () => {
               )}
             </ScrollView>
 
-            {/* Category quick access - POSITIONED ABSOLUTELY OVER MESSAGES */}
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.categoriesContainerAbsolute,
-                { 
+                {
                   opacity: categoriesOpacity,
                   height: categoriesHeight,
-                }
+                },
               ]}
             >
               <ScrollView
@@ -604,7 +697,6 @@ const AdvisorAI = () => {
             </Animated.View>
           </View>
 
-          {/* Input field */}
           <View style={dynamicStyles.inputContainer}>
             <TextInput
               style={dynamicStyles.input}
@@ -626,23 +718,21 @@ const AdvisorAI = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Sidebar overlay */}
           {isSidebarOpen && (
-            <TouchableOpacity 
-              style={[dynamicStyles.overlay, { opacity: overlayOpacity }]} 
+            <TouchableOpacity
+              style={[dynamicStyles.overlay, { opacity: overlayOpacity }]}
               activeOpacity={1}
               onPress={() => setIsSidebarOpen(false)}
             />
           )}
 
-          {/* Sidebar */}
-          <Animated.View 
+          <Animated.View
             style={[
               dynamicStyles.sidebar,
-              { 
+              {
                 width: sidebarWidth,
-                transform: [{ translateX: sidebarTranslateX }] 
-              }
+                transform: [{ translateX: sidebarTranslateX }],
+              },
             ]}
           >
             <View style={styles.sidebarHeader}>
@@ -651,33 +741,33 @@ const AdvisorAI = () => {
                 <Text style={dynamicStyles.sidebarCloseButton}>✕</Text>
               </TouchableOpacity>
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={dynamicStyles.newChatButton}
               onPress={startNewChat}
             >
               <Text style={styles.newChatIcon}>+</Text>
               <Text style={dynamicStyles.newChatText}>Start New Chat</Text>
             </TouchableOpacity>
-            
+
             <ScrollView style={styles.chatHistoryList}>
               {chatSessions.map((session) => (
                 <TouchableOpacity
                   key={session.id}
                   style={[
                     dynamicStyles.chatHistoryItem,
-                    currentChatId === session.id && styles.activeChatItem
+                    currentChatId === session.id && styles.activeChatItem,
                   ]}
                   onPress={() => loadChatSession(session.id)}
+                  onLongPress={() => handleLongPress(session.id, session.title)}
                 >
                   <Text style={dynamicStyles.chatHistoryTitle}>{session.title}</Text>
                   <Text style={dynamicStyles.chatHistoryDate}>{formatDate(session.date)}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            
-            {/* Profile button at bottom of sidebar */}
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.profileButton}
               onPress={openProfileScreen}
             >
@@ -701,9 +791,7 @@ const AdvisorAI = () => {
   );
 };
 
-// Static styles that don't change with theme
 const styles = StyleSheet.create({
-  // ... All your static styles remain the same
   safeAreaBottom: {
     flex: 1,
   },
@@ -719,7 +807,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    // Adjust top position to include status bar height
     paddingTop: Platform.OS === 'android' ? STATUS_BAR_HEIGHT + 16 : STATUS_BAR_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
@@ -750,7 +837,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   messagesContent: {
-    paddingTop: 20, // Add padding to accommodate categories at top
+    paddingTop: 20,
     paddingBottom: 400,
   },
   messageBubble: {
@@ -850,7 +937,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// Main App component with ThemeProvider
 const App = () => {
   return (
     <ThemeProvider>

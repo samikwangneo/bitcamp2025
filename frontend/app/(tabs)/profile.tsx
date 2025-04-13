@@ -10,9 +10,8 @@ import {
   Platform,
   StatusBar,
 } from 'react-native';
-import { useTheme } from './themeContext'; // Import the theme hook from our new context file
+import { useTheme } from './themeContext';
 
-// Default status bar height values
 const STATUS_BAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 24;
 
 type UserProfile = {
@@ -30,52 +29,53 @@ type ProfileScreenProps = {
   profile: UserProfile;
   setProfile: (profile: UserProfile) => void;
   onBack: () => void;
-  isDarkMode: boolean;
-  toggleTheme: () => void;
 };
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ 
-  profile, 
-  setProfile, 
-  onBack,
-  // We still receive these props for backward compatibility
-  // but will primarily use the ThemeContext directly
-  isDarkMode: propIsDarkMode,
-  toggleTheme: propToggleTheme
-}) => {
-  // Get theme from context
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile, setProfile, onBack }) => {
   const { isDarkMode, toggleTheme, theme } = useTheme();
-  
-  const [editedProfile, setEditedProfile] = useState<UserProfile>({...profile});
+  const [editedProfile, setEditedProfile] = useState<UserProfile>({ ...profile });
 
   const handleSave = () => {
-    setProfile(editedProfile);
+    // Save all fields except darkMode, which is already saved on toggle
+    setProfile({
+      ...editedProfile,
+      preferences: {
+        ...editedProfile.preferences,
+        darkMode: profile.preferences.darkMode, // Preserve the current darkMode
+      },
+    });
     onBack();
   };
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
-    setEditedProfile(prev => ({
+    setEditedProfile((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handlePreferenceChange = (preference: keyof UserProfile['preferences'], value: boolean) => {
-    setEditedProfile(prev => ({
+    setEditedProfile((prev) => ({
       ...prev,
       preferences: {
         ...prev.preferences,
-        [preference]: value
-      }
+        [preference]: value,
+      },
     }));
 
-    // If changing dark mode, also toggle the theme
     if (preference === 'darkMode') {
       toggleTheme();
+      // Immediately update parent profile to save to AsyncStorage
+      setProfile({
+        ...profile,
+        preferences: {
+          ...profile.preferences,
+          darkMode: value,
+        },
+      });
     }
   };
 
-  // Create dynamic styles based on theme
   const dynamicStyles = StyleSheet.create({
     container: {
       flex: 1,
@@ -165,19 +165,16 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
   return (
     <View style={dynamicStyles.container}>
       <StatusBar barStyle={theme.statusBarStyle} translucent backgroundColor="transparent" />
-      
       <View style={dynamicStyles.header}>
         <TouchableOpacity style={dynamicStyles.backButton} onPress={onBack}>
           <Text style={dynamicStyles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={dynamicStyles.headerTitle}>Edit Profile</Text>
       </View>
-      
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.contentContainer}>
           <View style={dynamicStyles.section}>
             <Text style={dynamicStyles.sectionTitle}>Personal Information</Text>
-            
             <View style={dynamicStyles.inputContainer}>
               <Text style={dynamicStyles.inputLabel}>Name</Text>
               <TextInput
@@ -188,7 +185,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 placeholderTextColor={isDarkMode ? '#999999' : '#888888'}
               />
             </View>
-            
             <View style={dynamicStyles.inputContainer}>
               <Text style={dynamicStyles.inputLabel}>Email</Text>
               <TextInput
@@ -202,10 +198,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
               />
             </View>
           </View>
-          
           <View style={dynamicStyles.section}>
             <Text style={dynamicStyles.sectionTitle}>Academic Information</Text>
-            
             <View style={dynamicStyles.inputContainer}>
               <Text style={dynamicStyles.inputLabel}>Major</Text>
               <TextInput
@@ -216,7 +210,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 placeholderTextColor={isDarkMode ? '#999999' : '#888888'}
               />
             </View>
-            
             <View style={dynamicStyles.inputContainer}>
               <Text style={dynamicStyles.inputLabel}>Year</Text>
               <TextInput
@@ -228,10 +221,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
               />
             </View>
           </View>
-          
           <View style={dynamicStyles.section}>
             <Text style={dynamicStyles.sectionTitle}>App Preferences</Text>
-            
             <View style={dynamicStyles.preferencesItem}>
               <Text style={dynamicStyles.preferencesLabel}>Enable Notifications</Text>
               <Switch
@@ -241,7 +232,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 thumbColor={editedProfile.preferences.notifications ? theme.primary : '#f4f3f4'}
               />
             </View>
-            
             <View style={[dynamicStyles.preferencesItem, styles.lastPreferenceItem]}>
               <Text style={dynamicStyles.preferencesLabel}>Dark Mode</Text>
               <Switch
@@ -252,7 +242,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
               />
             </View>
           </View>
-          
           <TouchableOpacity style={dynamicStyles.saveButton} onPress={handleSave}>
             <Text style={dynamicStyles.saveButtonText}>Save Profile</Text>
           </TouchableOpacity>
@@ -262,7 +251,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
   );
 };
 
-// Static styles that don't change with theme
 const styles = StyleSheet.create({
   contentContainer: {
     paddingTop: 24,
