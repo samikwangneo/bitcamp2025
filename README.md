@@ -7,10 +7,7 @@ Created by Samik Wangneo, Rivan Parikh, Eswar Karavadi, and Aymaan Hussain
 ## Table of Contents
 - [Features](#features)
 - [Technologies](#technologies)
-- [Installation](#installation)
-- [Usage](#usage)
 - [Project Structure](#project-structure)
-- [Contributing](#contributing)
 - [License](#license)
 
 ## Features
