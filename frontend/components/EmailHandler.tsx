@@ -23,7 +23,7 @@ export const EmailHandler: React.FC<EmailHandlerProps> = ({ text }) => {
       width: "100%",
     },
     emailButton: {
-      backgroundColor: "#4285F4",
+      backgroundColor: "#c3423f",
       paddingVertical: 12,
       paddingHorizontal: 20,
       borderRadius: 6,
