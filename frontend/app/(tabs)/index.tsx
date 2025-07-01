@@ -52,8 +52,8 @@ type UserProfile = {
   };
 };
 
-const ADK_API_URL = "https://5fe0-206-139-64-98.ngrok-free.app/run";
-const ADK_BASE_URL = "https://5fe0-206-139-64-98.ngrok-free.app";
+const ADK_API_URL = "https://57b9-2601-249-8780-2c30-976-faed-13bb-62c3.ngrok-free.app/run";
+const ADK_BASE_URL = "https://57b9-2601-249-8780-2c30-976-faed-13bb-62c3.ngrok-free.app";
 const ADK_APP_NAME = "cs_advisor";
 
 const defaultProfile: UserProfile = {
@@ -74,7 +74,7 @@ const AdvisorAI = () => {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
-      text: "Hello! I'm AdvisorAI, your personal college advisor. I can help you with information about major information, degree audit, scheduling advising appointment, email advisor, and more. How can I assist you today?",
+      text: "Hello! I'm NeoVisr, your personal college advisor. I can help you with information about major information, degree audit, scheduling advising appointment, email advisor, and more. How can I assist you today?",
       sender: "ai",
       timestamp: new Date(),
     },
@@ -712,7 +712,7 @@ const AdvisorAI = () => {
       if (currentChatId === sessionId) {
         setMessages([
           {
-            text: "Hello! I'm AdvisorAI, your personal college advisor. I can help you with information about courses, minors, ULCs, CS tracks, and more. How can I assist you today?",
+            text: "Hello! I'm NeoVisr, your personal college advisor. I can help you with information about courses, minors, ULCs, CS tracks, and more. How can I assist you today?",
             sender: "ai",
             timestamp: new Date(),
           },
@@ -767,7 +767,7 @@ const AdvisorAI = () => {
   const startNewChat = () => {
     setMessages([
       {
-        text: "Hello! I'm AdvisorAI, your personal college advisor. I can help you with information about courses, minors, ULCs, CS tracks, and more. How can I assist you today?",
+        text: "Hello! I'm NeoVisr, your personal college advisor. I can help you with information about courses, minors, ULCs, CS tracks, and more. How can I assist you today?",
         sender: "ai",
         timestamp: new Date(),
       },
@@ -1019,7 +1019,7 @@ const AdvisorAI = () => {
               <Text style={dynamicStyles.menuIcon}>☰</Text>
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
-              <Text style={dynamicStyles.headerTitle}>AdvisorAI</Text>
+              <Text style={dynamicStyles.headerTitle}>NeoVisr</Text>
               <Text style={dynamicStyles.headerSubtitle}>
                 Your College Companion
               </Text>
@@ -1113,7 +1113,7 @@ const AdvisorAI = () => {
               style={dynamicStyles.input}
               value={inputText}
               onChangeText={handleTextInputChange}
-              placeholder="Ask AdvisorAI anything..."
+              placeholder="Ask NeoVisr anything..."
               placeholderTextColor={
                 themeMode === "dark" ||
                 (themeMode === "auto" && theme === darkTheme)

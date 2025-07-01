@@ -228,14 +228,14 @@ async def _run_degree_audit(credentials):
     print("DEBUG: Starting _run_degree_audit")
     try:
         # Create playwright instance WITHOUT context manager to prevent auto-closing
-        print("DEBUG: Initializing Playwright")
+        print("DEBUG: Initializing Playwright") 
         playwright = await async_playwright().start()
         print("DEBUG: Playwright initialized without context manager")
         
         # Create a non-persistent browser instance and context (no storage between sessions)
         # Set viewport size and additional parameters for headless mode
         _browser = await playwright.chromium.launch(
-            headless=False,  # Run in headless mode
+            headless=True,  # Run in headless mode
             args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']  # Common headless fixes
         )
         _browser_context = await _browser.new_context(
@@ -669,7 +669,7 @@ async def _run_degree_audit(credentials):
                                     const titleCell = cells[2];
                                     const titleText = titleCell.textContent.trim();
                                     
-                                    if (titleText.includes('Computer Science')) {
+                                    if (titleText === 'Computer Science') {
                                         console.log(`Found Computer Science row: ${titleText}`);
                                         
                                         // Find the View Audit link in the last column (index 8)
@@ -1835,16 +1835,25 @@ def create_advisor_email(topic: str) -> dict:
     # Create Gmail compose URL
     gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to={urllib.parse.quote(ADVISOR_CONTACT['email'])}&su={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
     
-    # Enhanced email prompt with more contextual information but simplified for mobile
+    # Enhanced email prompt with more contextual information
     email_prompt = (
-        f"I couldn't find specific information about '{clean_query}' in our available resources.\n\n"
-        f"For detailed guidance on {query_type}, I recommend contacting {ADVISOR_CONTACT['name']} at {ADVISOR_CONTACT['email']}.\n\n"
-        f"Click the button below to compose an email to your academic advisor about this topic.\n\n"
-        f"{gmail_url}"
+        f"I've prepared an email template to contact {ADVISOR_CONTACT['name']} about '{clean_query}'.\n\n"
+        f"<p><strong>Click the button below to open a pre-formatted email to your academic advisor:</strong></p>"
+        f"<div style='margin: 20px 0;'>"
+        f"<a href=\"{gmail_url}\" target=\"_blank\" style=\"display: inline-block; background-color: #4285F4; color: white; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: Arial, sans-serif;\">Contact Academic Advisor</a>"
+        f"</div>"
+        f"<br>"
+        f"<div style='margin: 20px 0;'>"
+        f"<a href=\"https://terpengage.umd.edu/\" target=\"_blank\" style=\"display: inline-block; background-color: #E21833; color: white; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: Arial, sans-serif;\">Book Meeting via TerpEngage</a>"
+        f"</div>"
+        f"<br>"
+        f"<div style='font-size: 0.9em; color: #666;'>"
+        f"Tip: The advisor can provide personalized guidance on course selection, degree requirements, and academic planning."
+        f"</div>"
     )
     
     with open('cs_advisor/email_log.txt', 'a', encoding='utf-8') as f:
-        f.write(f"[{subject}] Email prompted for query type: {query_type} - \"{clean_query}\"\n")
+        f.write(f"[{subject}] Email created for query type: {query_type} - \"{clean_query}\"\n")
     
     return {
         "email_template": email_prompt,

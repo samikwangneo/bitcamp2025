@@ -4,3 +4,4 @@
 [Academic Inquiry: ULC] Email created for query type: general - "ULC"
 [Academic Inquiry: ULC] Email created for query type: general - "ULC"
 [Academic Inquiry: ulc] Email prompted for query type: general - "ulc"
+[Academic Inquiry: mistake in requirements for CMSC4xx courses] Email prompted for query type: graduation requirements - "mistake in requirements for CMSC4xx courses"

@@ -1,1 +1,7 @@
 advisor-agent/.env
+node_modules
+.env
+.venv
+/.venv
+.venv311
+/.venv311
