@@ -29,34 +29,6 @@
 
 NeoVisr was developed by a team of passionate students and won the **Moonshot Award** at the 2025 Bitcamp Hackathon at the University of Maryland. The project was recognized for its innovative application of AI, technical complexity, and its potential to solve a real-world problem for students.
 
-## 👥 Meet the Team
-
-This project was made possible by the collaborative effort of these talented developers:
-
-<p align="center">
-  <a href="https://github.com/eswar-karavadi">
-    <img src="https://github.com/eswar-karavadi.png?size=100" alt="Eswar Karavadi" width="100" style="border-radius: 50%;">
-  </a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/rivincity">
-    <img src="https://github.com/rivincity.png?size=100" alt="Rivin City" width="100" style="border-radius: 50%;">
-  </a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/aymaanhussain">
-    <img src="https://github.com/aymaanhussain.png?size=100" alt="Aymaan Hussain" width="100" style="border-radius: 50%;">
-  </a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/samikwangneo">
-    <img src="https://github.com/samikwangneo.png?size=100" alt="Samik Wangneo" width="100" style="border-radius: 50%;">
-  </a>
-</p>
-<p align="center">
-  <a href="https://github.com/eswar-karavadi">Eswar Karavadi</a> •
-  <a href="https://github.com/rivincity">Rivin City</a> •
-  <a href="https://github.com/aymaanhussain">Aymaan Hussain</a> •
-  <a href="https://github.com/samikwangneo">Samik Wangneo</a>
-</p>
-
 ## ⚙️ How It Works
 
 NeoVisr is more than just a chatbot. It's a system of intelligent agents that work together to provide holistic academic advice.
