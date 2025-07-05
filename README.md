@@ -48,7 +48,7 @@ This **agentic workflow** allows NeoVisr to perform tasks that would normally re
 | **Mobile Frontend**| `React Native`, `JavaScript/TypeScript`                                                                       |
 | **AI Workflow** | `Google AI Developer Kit (ADK)`                                                                               |
 | **Web Automation** | `Playwright`                                                                                                  |
-| **AI/NLP** | `Gemini`, `pdfplumber`                                                   |
+| **AI/NLP** | `Gemini API`, `pdfplumber`                                                   |
 | **Backend/Server** | `FastAPI`                                                                     |
 
 ## 🚀 Getting Started
