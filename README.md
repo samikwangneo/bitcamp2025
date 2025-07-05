@@ -22,7 +22,7 @@
 * **Personalized Recommendations:** Get course suggestions tailored to your academic progress and interests.
 * **Agentic AI Workflows:** Utilizes **Google's AI Developer Kit (ADK)** to create intelligent agents that can reason, plan, and execute complex advising tasks.
 * **Automated Degree Audits:** Employs **Playwright** to securely log in and automatically fetch up-to-date degree audit data on behalf of the user.
-* **Natural Language Understanding:** Ask questions in plain English and get accurate answers from a **custom NLP model** trained on official UMD advising PDFs and documents.
+* **Natural Language Understanding:** Ask questions in plain English and get accurate answers from an **NLP model** trained on official UMD advising PDFs and documents.
 * **Mobile First:** A cross-platform application built with **React Native** for a seamless experience on both iOS and Android.
 
 ## 🏆 Bitcamp 2025 Hackathon Winner
@@ -48,8 +48,8 @@ This **agentic workflow** allows NeoVisr to perform tasks that would normally re
 | **Mobile Frontend**| `React Native`, `JavaScript/TypeScript`                                                                       |
 | **AI Workflow** | `Google AI Developer Kit (ADK)`                                                                               |
 | **Web Automation** | `Playwright`                                                                                                  |
-| **AI/ML** | Custom NLP Model (`Python`, `spaCy`/`scikit-learn` assumed)                                                       |
-| **Backend/Server** | `Node.js`, `Express.js` (assumed for API)                                                                       |
+| **AI/ML** | NLP Model (`Python`, `pdfplumber`                                                   |
+| **Backend/Server** | `FastAPI`                                                                     |
 
 ## 🚀 Getting Started
 
