@@ -27,7 +27,7 @@
 
 ## 🏆 Bitcamp 2025 Hackathon Winner
 
-NeoVisr was developed by a team of passionate students and won the **Grand Prize** at the 2025 Bitcamp Hackathon at the University of Maryland. The project was recognized for its innovative application of AI, technical complexity, and its potential to solve a real-world problem for students.
+NeoVisr was developed by a team of passionate students and won the **Moonshot Award** at the 2025 Bitcamp Hackathon at the University of Maryland. The project was recognized for its innovative application of AI, technical complexity, and its potential to solve a real-world problem for students.
 
 ## ⚙️ How It Works
 
