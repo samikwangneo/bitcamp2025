@@ -133,8 +133,8 @@ You should now have the NeoVisr application running in your simulator/emulator, 
 ---
 <p align="center">
 Developed with ❤️ by the NeoVisr Team: 
+<a href="https://github.com/samikwangneo">@samikwangneo</a>
 <a href="https://github.com/eswar-karavadi">@eswar-karavadi</a>, 
-<a href="https://github.com/rivincity">@rivincity</a>, 
-<a href="https://github.com/aymaanhussain">@aymaanhussain</a>, and 
-<a href="https://github.com/samikwangneo">@samikwangneo</a>.
+<a href="https://github.com/rivincity">@rivincity</a>, and
+<a href="https://github.com/aymaanhussain">@aymaanhussain</a>.
 </p>
