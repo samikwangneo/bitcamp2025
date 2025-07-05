@@ -132,5 +132,5 @@ You should now have the NeoVisr application running in your simulator/emulator, 
 
 ---
 <p align="center">
-Developed with ❤️ by the NeoVisr Team at Bitcamp 2025.
+Developed with ❤️ by the NeoVisr Team (@samikwangneo, @eswarkaravadi, @rivincity, @aymaanhussain)
 </p>
