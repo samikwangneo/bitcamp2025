@@ -52,8 +52,8 @@ type UserProfile = {
   };
 };
 
-const ADK_API_URL = "https://827f-71-187-21-111.ngrok-free.app/run";
-const ADK_BASE_URL = "https://827f-71-187-21-111.ngrok-free.app";
+const ADK_API_URL = " https://aa54-71-187-21-111.ngrok-free.app/run";
+const ADK_BASE_URL = " https://aa54-71-187-21-111.ngrok-free.app";
 const ADK_APP_NAME = "cs_advisor";
 
 const defaultProfile: UserProfile = {
