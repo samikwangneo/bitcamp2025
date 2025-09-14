@@ -1199,7 +1199,7 @@ async def _navigate_terpengage(credentials: dict = {}) -> dict:
             user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
             ignore_https_errors=True
         )
-        print("DEBUG: Created browser with non-persistent context in headless mode")
+        print("DEBUG: Created browser with non-persistent context")
         
         # Use a new page from the browser context
         page = await _browser_context.new_page()
@@ -1228,37 +1228,10 @@ async def _navigate_terpengage(credentials: dict = {}) -> dict:
         except Exception as e:
             print(f"DEBUG: Error clicking first login button: {str(e)}")
             await page.screenshot(path="terpengage_error.png")
-            
-            # Try with JavaScript fallback
-            try:
-                await page.evaluate('''() => {
-                    const loginButton = document.querySelector('a.btn.btn-primary.btn-block[href="/terpengage/student-resources"]');
-                    if (loginButton) {
-                        console.log("Found login button, clicking...");
-                        loginButton.click();
-                        return true;
-                    }
-                    
-                    const buttons = Array.from(document.querySelectorAll('a.btn.btn-primary'));
-                    for (const btn of buttons) {
-                        if (btn.textContent.includes('Login for UMD Students')) {
-                            console.log("Found login button by text, clicking...");
-                            btn.click();
-                            return true;
-                        }
-                    }
-                    return false;
-                }''')
-                print("DEBUG: Attempted JavaScript click on first login button")
-                
-                # Wait for navigation
-                await page.wait_for_timeout(5000)
-            except Exception as js_e:
-                print(f"DEBUG: JavaScript approach also failed: {str(js_e)}")
-                return {
-                    "status": "error",
-                    "message": f"Failed to navigate to TerpEngage login page: {str(js_e)}"
-                }
+            return {
+                "status": "error",
+                "message": f"Failed to navigate to TerpEngage login page: {str(e)}"
+            }
         
         # STEP 2: Click the "Log in to TerpEngage Student Portal" button
         try:
@@ -1272,28 +1245,12 @@ async def _navigate_terpengage(credentials: dict = {}) -> dict:
             await page.wait_for_timeout(5000)
         except Exception as e:
             print(f"DEBUG: Error clicking second login button: {str(e)}")
-            
-            # Try JavaScript fallback
-            try:
-                await page.evaluate('''() => {
-                    const loginButton = document.querySelector('a.btn.btn-primary[href="https://terpengage.umd.edu/community/s/"][target="_blank"]');
-                    if (loginButton) {
-                        console.log("Found second login button, clicking...");
-                        loginButton.click();
-                        return true;
-                    }
-                    return false;
-                }''')
-                print("DEBUG: Attempted JavaScript click on second login button")
-                await page.wait_for_timeout(5000)
-            except Exception as js_e:
-                print(f"DEBUG: JavaScript approach for second button failed: {str(js_e)}")
-                return {
-                    "status": "error_second_button",
-                    "message": f"Failed to click second login button: {str(js_e)}",
-                    "current_url": page.url,
-                    "advisor_preference": advisor_preference
-                }
+            return {
+                "status": "error_second_button",
+                "message": f"Failed to click second login button: {str(e)}",
+                "current_url": page.url,
+                "advisor_preference": advisor_preference
+            }
         
         # STEP 3: Handle the new tab and CAS login
         pages = _browser_context.pages
@@ -1310,389 +1267,76 @@ async def _navigate_terpengage(credentials: dict = {}) -> dict:
                 print(f"DEBUG: On CAS login page, URL: {cas_page.url}")
                 
                 # Use the provided credentials from the function parameters
-                # Try to fill login form
                 try:
                     await cas_page.wait_for_selector('#username', state='visible', timeout=5000)
                     await cas_page.fill('#username', credentials['username'])
                     await cas_page.fill('#password', credentials['password'])
-                    print("DEBUG: Filled login form using ID selectors")
+                    print("DEBUG: Filled login form")
                     
                     await cas_page.screenshot(path="terpengage_after_filling_login.png")
                     
-                    # Try to click login button
-                    try:
-                        await cas_page.click('button[name="_eventId_proceed"]')
-                        print("DEBUG: Clicked login button")
-                    except Exception as click_e:
-                        print(f"DEBUG: Failed to click login button: {str(click_e)}")
-                        # Try alternative methods
-                        try:
-                            await cas_page.evaluate('''() => {
-                                const buttons = document.querySelectorAll('button[type="submit"], input[type="submit"]');
-                                if (buttons.length > 0) {
-                                    buttons[0].click();
-                                    return true;
-                                }
-                                return false;
-                            }''')
-                            print("DEBUG: Attempted JavaScript click on login button")
-                        except Exception as js_e:
-                            print(f"DEBUG: All login button click attempts failed: {str(js_e)}")
-                            return {
-                                "status": "login_button_failed",
-                                "message": "Filled login form but couldn't click login button",
-                                "current_url": cas_page.url,
-                                "advisor_preference": advisor_preference
-                            }
+                    # Click login button
+                    await cas_page.click('button[name="_eventId_proceed"]')
+                    print("DEBUG: Clicked login button")
                     
                     # Wait for Duo 2FA
                     print("DEBUG: Waiting for Duo authentication")
-                    try:
-                        # Instead of waiting for the iframe (which can be problematic),
-                        # wait for the page to load and then check directly for the device prompt
-                        await cas_page.wait_for_load_state('networkidle', timeout=20000)
-                        print("DEBUG: Duo authentication page loaded")
-                        await cas_page.screenshot(path="terpengage_duo_auth_page.png")
-                        print("DEBUG: Screenshot saved to terpengage_duo_auth_page.png")
-                        
-                        # Analyze the page to see if we can extract any Duo-related info
-                        duo_info = await cas_page.evaluate('''() => {
-                            // Try to get any text that might indicate what's happening with Duo
-                            const duoText = document.body.innerText;
-                            // Check if there's a Duo iframe
-                            const duoIframe = document.querySelector('#duo_iframe');
-                            
-                            // Get more details about the page structure for debugging
-                            const allButtons = Array.from(document.querySelectorAll('button')).map(b => ({
-                                text: b.innerText,
-                                id: b.id,
-                                classes: b.className,
-                                visible: b.offsetParent !== null
-                            }));
-                            
-                            // Check for the device prompt specifically
-                            const devicePromptText = document.body.innerText.includes('Is this your device?');
-                            const devicePromptButton = document.querySelector('#dont-trust-browser-button');
-                            
-                            return {
-                                hasIframe: !!duoIframe,
-                                bodyText: duoText.substring(0, 500), // Limit text length
-                                url: window.location.href,
-                                buttons: allButtons,
-                                devicePrompt: {
-                                    textFound: devicePromptText,
-                                    buttonFound: !!devicePromptButton,
-                                    buttonId: devicePromptButton ? devicePromptButton.id : null
-                                },
-                                documentTitle: document.title
-                            };
-                        }''')
-                        print(f"DEBUG: Duo page info in headless mode: {duo_info}")
-                        
-                        print("DEBUG: Waiting for user to complete Duo authentication...")
-                        print("DEBUG: Please check your mobile device for a Duo push notification and approve it")
-                        print("DEBUG: Note: In headless mode, Duo authentication might be challenging")
-                        
-                        # Dump HTML for debugging in headless mode
-                        page_html = await cas_page.content()
-                        with open("terpengage_duo_page.html", "w", encoding="utf-8") as f:
-                            f.write(page_html[:20000])  # Save the first 20K chars
-                        print("DEBUG: Saved Duo page HTML for debugging")
-                        
-                        # Wait for Duo completion or device prompt
-                        current_url = cas_page.url
-                        duo_completed = False
-                        device_prompt_found = False
-                        
-                        # Try directly detecting the button rather than waiting for the iframe
-                        for i in range(90):  # Check for up to 90 seconds (longer timeout)
-                            if i % 10 == 0:
-                                await cas_page.screenshot(path=f"terpengage_duo_waiting_{i}.png")
-                            
-                            # Check if URL changed
-                            if cas_page.url != current_url:
-                                print(f"DEBUG: URL changed from {current_url} to {cas_page.url}")
-                                duo_completed = True
-                                break
-                            
-                            # Check for device prompt - this is the key part
-                            try:
-                                page_content = await cas_page.content()
-                                
-                                # Check for the "Is this your device?" text or the button directly
-                                if "Is this your device?" in page_content or await cas_page.query_selector('#dont-trust-browser-button') is not None:
-                                    print("DEBUG: 'Is this your device?' prompt detected!")
-                                    device_prompt_found = True
-                                    
-                                    # Try to click the "No, other people use this device" button by ID
-                                    try:
-                                        # Wait for button to be clickable with a shorter timeout
-                                        button = await cas_page.query_selector('#dont-trust-browser-button')
-                                        if button:
-                                            # In headless mode, scroll to the button first
-                                            await cas_page.evaluate('''(button) => {
-                                                button.scrollIntoView({behavior: 'smooth', block: 'center'});
-                                            }''', button)
-                                            await cas_page.wait_for_timeout(500)
-                                            
-                                            await button.click()
-                                            print("DEBUG: Clicked 'No, other people use this device' button by direct selector")
-                                            duo_completed = True
-                                            break
-                                        else:
-                                            print("DEBUG: Button found in HTML but couldn't get selector")
-                                    except Exception as no_btn_e:
-                                        print(f"DEBUG: Failed to click No button by query_selector: {str(no_btn_e)}")
-                                    
-                                    # Try multiple approaches to click the button
-                                    try:
-                                        # First try dispatching a click event (often works better in headless mode)
-                                        clicked = await cas_page.evaluate('''() => {
-                                            const button = document.querySelector('#dont-trust-browser-button');
-                                            if (button) {
-                                                // Scroll the button into view
-                                                button.scrollIntoView({behavior: 'smooth', block: 'center'});
-                                                
-                                                // Create and dispatch a MouseEvent
-                                                const clickEvent = new MouseEvent('click', {
-                                                    bubbles: true,
-                                                    cancelable: true,
-                                                    view: window
-                                                });
-                                                const clickResult = button.dispatchEvent(clickEvent);
-                                                
-                                                console.log('Mouse event dispatched with result:', clickResult);
-                                                return true;
-                                            }
-                                            return false;
-                                        }''')
-                                        
-                                        if clicked:
-                                            print("DEBUG: Dispatched click event via JavaScript")
-                                            await cas_page.wait_for_timeout(1000)
-                                            duo_completed = True
-                                            break
-                                    except Exception as evt_e:
-                                        print(f"DEBUG: Failed to dispatch click event: {str(evt_e)}")
-                                    
-                                    try:
-                                        # Try using the more direct page.click method
-                                        await cas_page.click('#dont-trust-browser-button', timeout=5000)
-                                        print("DEBUG: Clicked 'No, other people use this device' button by ID")
-                                        duo_completed = True
-                                        break
-                                    except Exception as click_e:
-                                        print(f"DEBUG: Failed to click button by ID: {str(click_e)}")
-                                        
-                                        # Retry with JavaScript immediately
-                                        try:
-                                            clicked = await cas_page.evaluate('''() => {
-                                                const noButton = document.querySelector('#dont-trust-browser-button');
-                                                if (noButton) {
-                                                    console.log("Found button, clicking...");
-                                                    // First scroll into view
-                                                    noButton.scrollIntoView({behavior: 'smooth', block: 'center'});
-                                                    
-                                                    // Try simple click
-                                                    try {
-                                                        noButton.click();
-                                                        return true;
-                                                    } catch (e) {
-                                                        console.log("Error in direct click:", e);
-                                                        
-                                                        // If direct click fails, try with href if it's a link
-                                                        if (noButton.tagName === 'A' && noButton.href) {
-                                                            window.location.href = noButton.href;
-                                                            return true;
-                                                        }
-                                                        
-                                                        return false;
-                                                    }
-                                                } else {
-                                                    console.log("Button not found by ID");
-                                                    // Try alternate methods
-                                                    const links = Array.from(document.querySelectorAll('a, button'));
-                                                    const noLink = links.find(el => el.textContent.includes("No, other people use this device"));
-                                                    if (noLink) {
-                                                        noLink.scrollIntoView({behavior: 'smooth', block: 'center'});
-                                                        noLink.click();
-                                                        return true;
-                                                    }
-                                                    return false;
-                                                }
-                                            }''')
-                                            if clicked:
-                                                print("DEBUG: Successfully clicked button via JavaScript")
-                                                duo_completed = True
-                                                break
-                                            else:
-                                                print("DEBUG: JavaScript couldn't find the button")
-                                        except Exception as js_e:
-                                            print(f"DEBUG: JavaScript click failed: {str(js_e)}")
-                                            
-                                            # Last resort: try to find any button with similar text
-                                            try:
-                                                await cas_page.click('text="No, other people use this device"')
-                                                print("DEBUG: Clicked No button using text selector")
-                                                duo_completed = True
-                                                break
-                                            except Exception as text_e:
-                                                print(f"DEBUG: Text selector click failed: {str(text_e)}")
-                                                
-                                                # Final attempt: try to find partial text match
-                                                try:
-                                                    # Look for any element with "No," or "other people" in it
-                                                    await cas_page.click('text="No,"', timeout=3000)
-                                                    print("DEBUG: Clicked 'No,' text in button")
-                                                    duo_completed = True
-                                                    break
-                                                except Exception as partial_e:
-                                                    print(f"DEBUG: Partial text match click failed: {str(partial_e)}")
-                                    
-                                # Check if we're already on TerpEngage
-                                if "terpengage.umd.edu/community" in cas_page.url:
-                                    print("DEBUG: Already on TerpEngage community page")
-                                    duo_completed = True
-                                    break
-                            except Exception as check_e:
-                                print(f"DEBUG: Error checking page content: {str(check_e)}")
-                            
-                            # Short wait between checks
-                            await cas_page.wait_for_timeout(1000)
-                            if i % 5 == 0:
-                                print(f"DEBUG: Still waiting for Duo or device prompt... ({i+1}s)")
-                        
-                        if duo_completed:
-                            print("DEBUG: Duo authentication or device prompt handling appears complete")
-                            
-                            # Wait for any navigation after clicking "No"
-                            try:
-                                await cas_page.wait_for_navigation(timeout=10000)
-                                print(f"DEBUG: Navigated to new page after handling device prompt. URL: {cas_page.url}")
-                            except Exception as nav_e:
-                                print(f"DEBUG: Navigation may not have occurred: {str(nav_e)}")
-                            
-                            # Take final screenshot
-                            await cas_page.screenshot(path="terpengage_after_duo_auth.png")
-                            
-                            # Check if we're now on TerpEngage
-                            if "terpengage.umd.edu/community" in cas_page.url:
-                                print("DEBUG: Successfully reached TerpEngage community page")
-                                
-                                # Try to extract the CS advisor name
-                                try:
-                                    # Only attempt to extract advisor name if user specifically wants CS advisor
-                                    if advisor_preference and advisor_preference.lower() in ["cs", "cs advisor", "computer science", "my advisor"]:
-                                        advisor_info = await cas_page.evaluate('''() => {
-                                            // Look for the advisor element
-                                            const advisorElement = document.querySelector('.slds-truncate.slds-text-heading_small a[data-label="successTeamMember"]');
-                                            if (advisorElement) {
-                                                return {
-                                                    found: true,
-                                                    name: advisorElement.textContent.trim(),
-                                                    element_data: {
-                                                        label: advisorElement.getAttribute('data-label'),
-                                                        parent_class: advisorElement.parentElement ? advisorElement.parentElement.className : 'unknown'
-                                                    }
-                                                };
-                                            }
-                                            
-                                            // If the exact element isn't found, try a broader search
-                                            const possibleAdvisors = Array.from(document.querySelectorAll('.slds-truncate a')).map(el => ({
-                                                text: el.textContent.trim(),
-                                                label: el.getAttribute('data-label') || 'unknown',
-                                                parent_class: el.parentElement ? el.parentElement.className : 'unknown'
-                                            }));
-                                            
-                                            return {
-                                                found: false,
-                                                alternative_elements: possibleAdvisors.slice(0, 5) // Return up to 5 alternatives
-                                            };
-                                        }''')
-                                        
-                                        if advisor_info and advisor_info.get('found'):
-                                            print(f"DEBUG: Found CS advisor: {advisor_info.get('name')}")
-                                            return {
-                                                "status": "success",
-                                                "message": "Successfully navigated to TerpEngage community page",
-                                                "current_url": cas_page.url,
-                                                "advisor_name": advisor_info.get('name'),
-                                                "advisor_preference": advisor_preference
-                                            }
-                                        else:
-                                            print(f"DEBUG: Advisor element not found. Alternative elements: {advisor_info.get('alternative_elements', [])}")
-                                    else:
-                                        print("DEBUG: Not extracting advisor name as user prefers different advisor")
-                                except Exception as advisor_e:
-                                    print(f"DEBUG: Error extracting advisor information: {str(advisor_e)}")
-                                
-                                # Return success even if we couldn't find the advisor
-                                return {
-                                    "status": "success",
-                                    "message": "Successfully navigated to TerpEngage community page",
-                                    "current_url": cas_page.url,
-                                    "advisor_preference": advisor_preference
-                                }
-                            else:
-                                return {
-                                    "status": "device_prompt_answered",
-                                    "message": "Successfully navigated through Duo authentication and answered device prompt",
-                                    "current_url": cas_page.url,
-                                    "advisor_preference": advisor_preference
-                                }
-                        elif device_prompt_found:
-                            print("DEBUG: Device prompt found but couldn't complete the flow")
-                            return {
-                                "status": "device_prompt_found_but_not_clicked",
-                                "message": "Found the 'Is this your device?' prompt but couldn't click the button",
-                                "current_url": cas_page.url,
-                                "advisor_preference": advisor_preference
-                            }
-                        else:
-                            print("DEBUG: Duo authentication timed out")
-                            return {
-                                "status": "duo_timeout",
-                                "message": "Duo authentication timed out without finding device prompt",
-                                "current_url": cas_page.url,
-                                "advisor_preference": advisor_preference
-                            }
-                    except Exception as duo_e:
-                        print(f"DEBUG: Error during Duo authentication: {str(duo_e)}")
+                    await cas_page.wait_for_load_state('networkidle', timeout=20000)
+                    print("DEBUG: Duo authentication page loaded")
+                    await cas_page.screenshot(path="terpengage_duo_auth_page.png")
+                    
+                    # Check for device prompt
+                    device_prompt = await cas_page.evaluate('''() => {
+                        return document.body.innerText.includes('Is this your device?');
+                    }''')
+                    
+                    if device_prompt:
+                        print("DEBUG: Found device prompt")
                         return {
-                            "status": "duo_error",
-                            "message": f"Error during Duo authentication: {str(duo_e)}",
+                            "status": "device_prompt_found",
+                            "message": "Found Duo device prompt",
                             "current_url": cas_page.url,
                             "advisor_preference": advisor_preference
                         }
-                except Exception as form_e:
-                    print(f"DEBUG: Error filling login form: {str(form_e)}")
+                    else:
+                        print("DEBUG: No device prompt found")
+                        return {
+                            "status": "duo_prompt_not_found",
+                            "message": "Duo authentication page loaded but no device prompt found",
+                            "current_url": cas_page.url,
+                            "advisor_preference": advisor_preference
+                        }
+                        
+                except Exception as e:
+                    print(f"DEBUG: Error during CAS login: {str(e)}")
                     return {
-                        "status": "login_form_error",
-                        "message": f"Error filling login form: {str(form_e)}",
+                        "status": "login_error",
+                        "message": f"Error during CAS login: {str(e)}",
                         "current_url": cas_page.url,
                         "advisor_preference": advisor_preference
                     }
             else:
-                print(f"DEBUG: Not on expected CAS login page, URL: {cas_page.url}")
+                print(f"DEBUG: Not on CAS login page. Current URL: {cas_page.url}")
                 return {
-                    "status": "unexpected_page",
-                    "message": f"Navigation led to unexpected page: {cas_page.url}",
+                    "status": "not_cas_page",
+                    "message": "Not on CAS login page",
                     "current_url": cas_page.url,
                     "advisor_preference": advisor_preference
                 }
         else:
-            print("DEBUG: No new tab opened after clicking 'Log in to TerpEngage Student Portal'")
+            print("DEBUG: No new tab opened")
             return {
                 "status": "no_new_tab",
-                "message": "Clicked second login button but no new tab opened",
+                "message": "No new tab opened after clicking login button",
                 "current_url": page.url,
                 "advisor_preference": advisor_preference
             }
+            
     except Exception as e:
-        print(f"DEBUG: Unhandled exception in _navigate_terpengage: {str(e)}")
+        print(f"DEBUG: Unexpected error in _navigate_terpengage: {str(e)}")
         return {
             "status": "error",
-            "message": f"Error navigating to TerpEngage: {str(e)}",
+            "message": f"Unexpected error: {str(e)}",
             "advisor_preference": advisor_preference
         }
 

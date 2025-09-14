@@ -52,8 +52,8 @@ type UserProfile = {
   };
 };
 
-const ADK_API_URL = "https://ed47-206-139-64-98.ngrok-free.app/run";
-const ADK_BASE_URL = "https://ed47-206-139-64-98.ngrok-free.app";
+const ADK_API_URL = " https://aa54-71-187-21-111.ngrok-free.app/run";
+const ADK_BASE_URL = " https://aa54-71-187-21-111.ngrok-free.app";
 const ADK_APP_NAME = "cs_advisor";
 
 const defaultProfile: UserProfile = {
@@ -114,30 +114,35 @@ const AdvisorAI = () => {
         }
         setUserId(storedUserId);
         console.log("User ID loaded:", storedUserId);
-  
+
         // Load user profile
         const profileJson = await AsyncStorage.getItem(USER_PROFILE_KEY);
         console.log("Raw profile JSON from AsyncStorage:", profileJson);
-  
+
         if (profileJson) {
           try {
             const parsedProfile = JSON.parse(profileJson);
             console.log("Parsed profile:", parsedProfile);
-  
+
             // Validate parsed profile with more detailed checks
-            const isValidProfile = (
+            const isValidProfile =
               parsedProfile &&
-              typeof parsedProfile === 'object' &&
-              typeof parsedProfile.name === "string" && parsedProfile.name.trim() !== "" &&
-              typeof parsedProfile.email === "string" && parsedProfile.email.trim() !== "" &&
-              typeof parsedProfile.major === "string" && parsedProfile.major.trim() !== "" &&
-              typeof parsedProfile.year === "string" && parsedProfile.year.trim() !== "" &&
+              typeof parsedProfile === "object" &&
+              typeof parsedProfile.name === "string" &&
+              parsedProfile.name.trim() !== "" &&
+              typeof parsedProfile.email === "string" &&
+              parsedProfile.email.trim() !== "" &&
+              typeof parsedProfile.major === "string" &&
+              parsedProfile.major.trim() !== "" &&
+              typeof parsedProfile.year === "string" &&
+              parsedProfile.year.trim() !== "" &&
               parsedProfile.preferences &&
-              typeof parsedProfile.preferences === 'object' &&
+              typeof parsedProfile.preferences === "object" &&
               typeof parsedProfile.preferences.notifications === "boolean" &&
-              ["light", "dark", "auto"].includes(parsedProfile.preferences.themeMode)
-            );
-  
+              ["light", "dark", "auto"].includes(
+                parsedProfile.preferences.themeMode
+              );
+
             if (isValidProfile) {
               console.log("Profile is valid, applying:", parsedProfile);
               setUserProfile(parsedProfile);
@@ -162,7 +167,9 @@ const AdvisorAI = () => {
             );
           }
         } else {
-          console.log("No profile found in AsyncStorage, using default profile");
+          console.log(
+            "No profile found in AsyncStorage, using default profile"
+          );
           setUserProfile(defaultProfile);
           setThemeMode(defaultProfile.preferences.themeMode);
           await AsyncStorage.setItem(
@@ -170,7 +177,7 @@ const AdvisorAI = () => {
             JSON.stringify(defaultProfile)
           );
         }
-  
+
         // Load chat sessions
         const sessionsJson = await AsyncStorage.getItem(CHAT_SESSIONS_KEY);
         if (sessionsJson) {
@@ -199,7 +206,7 @@ const AdvisorAI = () => {
         setThemeMode(defaultProfile.preferences.themeMode);
       }
     };
-  
+
     loadData();
   }, []);
 
